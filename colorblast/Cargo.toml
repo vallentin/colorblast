@@ -1,0 +1,9 @@
+[package]
+name = "colorblast"
+version = "0.0.1"
+edition = "2021"
+
+[badges]
+maintenance = { status = "experimental" }
+
+[dependencies]
