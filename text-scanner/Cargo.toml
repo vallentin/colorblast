@@ -1,0 +1,10 @@
+[package]
+name = "text-scanner"
+version = "0.0.1"
+edition = "2021"
+
+[badges]
+maintenance = { status = "actively-developed" }
+
+[dependencies]
+char-ranges = "0.1"
