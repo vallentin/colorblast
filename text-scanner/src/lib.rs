@@ -6,6 +6,8 @@
 #![forbid(unsafe_code)]
 #![forbid(elided_lifetimes_in_paths)]
 
+pub mod ext;
+
 pub mod prelude {
     pub use super::{ScanResult, Scanner, ScannerItem, ScannerResult};
 }
