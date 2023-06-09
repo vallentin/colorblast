@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "any-lexer",
     "colorblast",
     "text-scanner",
 ]
