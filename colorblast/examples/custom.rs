@@ -49,7 +49,7 @@ fn main() {
         (Some(w_on_p), "purple"),
         (None, "\n"),
     ];
-    println_stylized_tokens(tokens);
+    println_styled_tokens(tokens);
 }
 
 fn example_with_color() {
@@ -61,7 +61,7 @@ fn example_with_color() {
         ([0xFF, 0xFF, 0xFF], " "),
         ([0x00, 0x00, 0xFF], "blue"),
     ];
-    println_stylized_tokens(tokens);
+    println_styled_tokens(tokens);
 }
 
 fn example_with_option_color() {
@@ -74,7 +74,7 @@ fn example_with_option_color() {
         (None, " "),
         (Some([0x00, 0x00, 0xFF]), "blue"),
     ];
-    println_stylized_tokens(tokens);
+    println_styled_tokens(tokens);
 }
 
 fn example_with_style() {
@@ -90,7 +90,7 @@ fn example_with_style() {
         (Style::NONE, " "),
         (w_on_b, "blue"),
     ];
-    println_stylized_tokens(tokens);
+    println_styled_tokens(tokens);
 }
 
 fn example_with_option_style() {
@@ -107,5 +107,5 @@ fn example_with_option_style() {
         (None, " "),
         (Some(w_on_b), "blue"),
     ];
-    println_stylized_tokens(tokens);
+    println_styled_tokens(tokens);
 }

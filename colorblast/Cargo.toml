@@ -7,3 +7,4 @@ edition = "2021"
 maintenance = { status = "experimental" }
 
 [dependencies]
+any-lexer = { path = "../any-lexer" }
