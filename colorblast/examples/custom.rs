@@ -49,7 +49,12 @@ fn main() {
         (Some(w_on_p), "purple"),
         (None, "\n"),
     ];
-    println_styled_tokens(tokens);
+    // Print styled tokens to the standard output
+    println_styled_tokens(tokens.clone());
+
+    // Render the styled tokens to HTML
+    let html = render_html(tokens);
+    println!("{}", html);
 }
 
 fn example_with_color() {

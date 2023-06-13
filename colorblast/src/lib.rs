@@ -6,14 +6,17 @@ pub mod lexers;
 pub mod prelude {
     pub use super::style::prelude::*;
 
+    pub use super::html::{render_html, render_html_into};
     pub use super::{print_styled_tokens, println_styled_tokens};
     pub use super::{print_stylized_tokens, println_stylized_tokens};
 }
 
 mod ansi;
+mod html;
 mod style;
 mod stylize;
 
+pub use crate::html::{render_html, render_html_into};
 pub use crate::style::*;
 pub use crate::stylize::StylizeToken;
 
