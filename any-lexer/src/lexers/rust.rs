@@ -173,3 +173,21 @@ impl<'text> Iterator for RustLexer<'text> {
 }
 
 impl FusedIterator for RustLexer<'_> {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_end_to_end() {
+        let input = include_str!("../../../text-scanner/src/ext/rust.rs");
+        let mut output = String::new();
+
+        let lexer = RustLexer::new(input);
+        for (_tok, span) in lexer {
+            output.push_str(span.as_str());
+        }
+
+        assert_eq!(input, output);
+    }
+}
