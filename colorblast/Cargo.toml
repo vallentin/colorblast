@@ -2,9 +2,15 @@
 name = "colorblast"
 version = "0.0.1"
 edition = "2021"
+description = "Syntax highlighting library for various programming languages and formats"
+keywords = ["lexer", "tokenization", "token", "streaming", "parsing"]
+categories = ["parsing", "parser-implementations", "text-processing"]
+repository = "https://github.com/vallentin/colorblast"
+license = "Zlib"
+readme = "README.md"
 
 [badges]
 maintenance = { status = "experimental" }
 
 [dependencies]
-any-lexer = { path = "../any-lexer" }
+any-lexer = { path = "../any-lexer", version = "0.0.1" }
