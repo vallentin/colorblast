@@ -2,9 +2,15 @@
 name = "any-lexer"
 version = "0.0.1"
 edition = "2021"
+description = "Lexers for various programming languages and formats"
+keywords = ["lexer", "tokenization", "token", "streaming", "parsing"]
+categories = ["parsing", "text-processing"]
+repository = "https://github.com/vallentin/colorblast"
+license = "Zlib"
+readme = "README.md"
 
 [badges]
 maintenance = { status = "actively-developed" }
 
 [dependencies]
-text-scanner = { path = "../text-scanner" }
+text-scanner = { path = "../text-scanner", version = "0.0.1" }
