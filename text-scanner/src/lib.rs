@@ -337,6 +337,15 @@ impl<'text> Scanner<'text> {
         }
     }
 
+    #[allow(dead_code)]
+    #[inline]
+    pub(crate) fn accept_if_ext<A, Args>(&mut self, accept: A) -> ScannerResult<'text, char>
+    where
+        A: ScanOne<Args>,
+    {
+        self.accept_if(|c| accept.scan_one(c))
+    }
+
     /// Advances the scanner cursor and returns the next
     /// [`char`] and its [`Range`], if the next character
     /// matches `expected`.
@@ -454,6 +463,15 @@ impl<'text> Scanner<'text> {
         self.ranged_text(r)
     }
 
+    #[allow(dead_code)]
+    #[inline]
+    pub(crate) fn skip_while_ext<A, Args>(&mut self, mut skip: A) -> ScannerItem<&'text str>
+    where
+        A: ScanMany<Args>,
+    {
+        self.skip_while(|c| skip.scan_many(c))
+    }
+
     /// Skips zero-to-many characters matching `expected`, same as:
     ///
     /// ```rust
@@ -524,6 +542,15 @@ impl<'text> Scanner<'text> {
         F: FnMut(char) -> bool,
     {
         self.skip_while(|c| !f(c))
+    }
+
+    #[allow(dead_code)]
+    #[inline]
+    pub(crate) fn skip_until_ext<A, Args>(&mut self, mut skip: A) -> ScannerItem<&'text str>
+    where
+        A: ScanMany<Args>,
+    {
+        self.skip_until(|c| skip.scan_many(c))
     }
 
     /// Skips zero-to-many characters, until the next character
@@ -630,6 +657,58 @@ impl<'text> Scanner<'text> {
                 Err(self.ranged_text(r))
             }
         }
+    }
+}
+
+// Currently not publicly exported, as using e.g. `accept_if()` with a
+// closure would require specifying types more often than desired.
+pub(crate) trait ScanOne<Args> {
+    fn scan_one(self, next: char) -> bool;
+}
+
+impl<F> ScanOne<char> for F
+where
+    F: FnOnce(char) -> bool,
+{
+    #[inline]
+    fn scan_one(self, next: char) -> bool {
+        self(next)
+    }
+}
+
+impl<F> ScanOne<&char> for F
+where
+    F: FnOnce(&char) -> bool,
+{
+    #[inline]
+    fn scan_one(self, next: char) -> bool {
+        self(&next)
+    }
+}
+
+// Currently not publicly exported, as using e.g. `skip_while()` with a
+// closure would require specifying types more often than desired.
+pub(crate) trait ScanMany<Args>: ScanOne<Args> {
+    fn scan_many(&mut self, next: char) -> bool;
+}
+
+impl<F> ScanMany<char> for F
+where
+    F: FnMut(char) -> bool,
+{
+    #[inline]
+    fn scan_many(&mut self, next: char) -> bool {
+        self(next)
+    }
+}
+
+impl<F> ScanMany<&char> for F
+where
+    F: FnMut(&char) -> bool,
+{
+    #[inline]
+    fn scan_many(&mut self, next: char) -> bool {
+        self(&next)
     }
 }
 

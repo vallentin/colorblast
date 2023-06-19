@@ -60,8 +60,8 @@ impl<'text> CScannerExt<'text> for Scanner<'text> {
 
     fn scan_c_int_dec(&mut self) -> ScannerResult<'text, &'text str> {
         self.scan_with(|scanner| {
-            scanner.accept_if(|c| c.is_ascii_digit())?;
-            scanner.skip_while(|c| c.is_ascii_digit());
+            scanner.accept_if_ext(char::is_ascii_digit)?;
+            scanner.skip_while_ext(char::is_ascii_digit);
             Ok(())
         })
     }
@@ -71,8 +71,8 @@ impl<'text> CScannerExt<'text> for Scanner<'text> {
             scanner.accept_char('0')?;
             scanner.accept_char_any(&['x', 'X'])?;
 
-            scanner.accept_if(|c| c.is_ascii_hexdigit())?;
-            scanner.skip_while(|c| c.is_ascii_hexdigit());
+            scanner.accept_if_ext(char::is_ascii_hexdigit)?;
+            scanner.skip_while_ext(char::is_ascii_hexdigit);
 
             Ok(())
         })
@@ -102,8 +102,8 @@ impl<'text> CScannerExt<'text> for Scanner<'text> {
             if scanner.accept_char_any(&['e', 'E']).is_ok() {
                 _ = scanner.accept_char_any(&['+', '-']);
 
-                scanner.accept_if(|c| c.is_ascii_digit())?;
-                scanner.skip_while(|c| c.is_ascii_digit());
+                scanner.accept_if_ext(char::is_ascii_digit)?;
+                scanner.skip_while_ext(char::is_ascii_digit);
             }
 
             Ok(())
@@ -125,8 +125,8 @@ impl<'text> CScannerExt<'text> for Scanner<'text> {
                     _ = scanner.accept_if(|c| matches!(c, '0'..='7'));
                     _ = scanner.accept_if(|c| matches!(c, '0'..='7'));
                 } else if c == 'x' {
-                    scanner.accept_if(|c| c.is_ascii_hexdigit())?;
-                    _ = scanner.accept_if(|c| c.is_ascii_hexdigit());
+                    scanner.accept_if_ext(char::is_ascii_hexdigit)?;
+                    _ = scanner.accept_if_ext(char::is_ascii_hexdigit);
                 }
             }
 

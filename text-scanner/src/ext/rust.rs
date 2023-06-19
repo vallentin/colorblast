@@ -668,7 +668,7 @@ impl<'text> RustScannerExt<'text> for Scanner<'text> {
     // Reference: https://doc.rust-lang.org/reference/tokens.html#integer-literals
     fn scan_rust_int_dec(&mut self) -> ScannerResult<'text, &'text str> {
         self.scan_with(|scanner| {
-            scanner.accept_if(|c| c.is_ascii_digit())?;
+            scanner.accept_if_ext(char::is_ascii_digit)?;
             scanner.skip_while(|c| c.is_ascii_digit() || (c == '_'));
             Ok(())
         })
@@ -681,7 +681,7 @@ impl<'text> RustScannerExt<'text> for Scanner<'text> {
             scanner.accept_char('x')?;
 
             scanner.skip_while_char('_');
-            scanner.accept_if(|c| c.is_ascii_hexdigit())?;
+            scanner.accept_if_ext(char::is_ascii_hexdigit)?;
 
             scanner.skip_while(|c| c.is_ascii_hexdigit() || (c == '_'));
 
