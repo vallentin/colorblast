@@ -1,4 +1,4 @@
-use crate::{Scanner, ScannerResult};
+use crate::{CharExt, Scanner, ScannerResult};
 
 /// [`Scanner`] extension for scanning Rust tokens.
 ///
@@ -696,9 +696,9 @@ impl<'text> RustScannerExt<'text> for Scanner<'text> {
             scanner.accept_char('o')?;
 
             scanner.skip_while_char('_');
-            scanner.accept_if(|c| matches!(c, '0'..='7'))?;
+            scanner.accept_if(CharExt::is_ascii_octdigit)?;
 
-            scanner.skip_while(|c| matches!(c, '0'..='7' | '_'));
+            scanner.skip_while(|c| CharExt::is_ascii_octdigit(c) || (c == '_'));
 
             Ok(())
         })
@@ -711,9 +711,9 @@ impl<'text> RustScannerExt<'text> for Scanner<'text> {
             scanner.accept_char('b')?;
 
             scanner.skip_while_char('_');
-            scanner.accept_if(|c| matches!(c, '0' | '1'))?;
+            scanner.accept_if(CharExt::is_ascii_bindigit)?;
 
-            scanner.skip_while(|c| matches!(c, '0' | '1' | '_'));
+            scanner.skip_while(|c| c.is_ascii_bindigit() || (c == '_'));
 
             Ok(())
         })

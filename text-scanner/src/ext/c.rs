@@ -1,4 +1,4 @@
-use crate::{Scanner, ScannerResult};
+use crate::{CharExt, Scanner, ScannerResult};
 
 pub trait CScannerExt<'text> {
     fn scan_c_line_comment(&mut self) -> ScannerResult<'text, &'text str>;
@@ -82,8 +82,8 @@ impl<'text> CScannerExt<'text> for Scanner<'text> {
         self.scan_with(|scanner| {
             scanner.accept_char('0')?;
 
-            scanner.accept_if(|c| matches!(c, '0'..='7'))?;
-            scanner.skip_while(|c| matches!(c, '0'..='7'));
+            scanner.accept_if(CharExt::is_ascii_octdigit)?;
+            scanner.skip_while(CharExt::is_ascii_octdigit);
 
             Ok(())
         })
@@ -121,9 +121,9 @@ impl<'text> CScannerExt<'text> for Scanner<'text> {
                 // Note: Technically any character is not valid
                 let (_r, c) = scanner.next()?;
 
-                if matches!(c, '0'..='7') {
-                    _ = scanner.accept_if(|c| matches!(c, '0'..='7'));
-                    _ = scanner.accept_if(|c| matches!(c, '0'..='7'));
+                if CharExt::is_ascii_octdigit(c) {
+                    _ = scanner.accept_if(CharExt::is_ascii_octdigit);
+                    _ = scanner.accept_if(CharExt::is_ascii_octdigit);
                 } else if c == 'x' {
                     scanner.accept_if_ext(char::is_ascii_hexdigit)?;
                     _ = scanner.accept_if_ext(char::is_ascii_hexdigit);

@@ -712,5 +712,24 @@ where
     }
 }
 
+pub(crate) trait CharExt {
+    // `std::char::is_ascii_octdigit` is unstable
+    fn is_ascii_octdigit(self) -> bool;
+
+    fn is_ascii_bindigit(self) -> bool;
+}
+
+impl CharExt for char {
+    #[inline]
+    fn is_ascii_octdigit(self) -> bool {
+        matches!(self, '0'..='7')
+    }
+
+    #[inline]
+    fn is_ascii_bindigit(self) -> bool {
+        matches!(self, '0' | '1')
+    }
+}
+
 // If you are looking for tests, then they are
 // all implemented in the form of doc tests
