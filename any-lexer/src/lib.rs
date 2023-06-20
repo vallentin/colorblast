@@ -72,6 +72,84 @@ impl PartialEq for TokenSpan<'_> {
     }
 }
 
+pub trait Lexer<'text> {
+    type Token: ScanToken;
+
+    #[inline]
+    fn next_token(&mut self) -> Option<(Self::Token, TokenSpan<'text>)> {
+        Self::Token::scan_token(self.scanner_mut())
+    }
+
+    #[inline]
+    fn peek_token(&self) -> Option<(Self::Token, TokenSpan<'text>)> {
+        self.scanner().peeking(Self::Token::scan_token)
+    }
+
+    #[inline]
+    fn cursor_pos(&self) -> usize {
+        self.scanner().cursor_pos()
+    }
+
+    #[inline]
+    fn set_cursor_pos(&mut self, pos: usize) -> usize {
+        self.scanner_mut().set_cursor_pos(pos)
+    }
+
+    #[inline]
+    fn reset(&mut self) -> usize {
+        self.set_cursor_pos(0)
+    }
+
+    fn scanner(&self) -> &Scanner<'text>;
+    fn scanner_mut(&mut self) -> &mut Scanner<'text>;
+}
+
+pub trait ScanToken: Sized {
+    fn scan_token<'text>(scanner: &mut Scanner<'text>) -> Option<(Self, TokenSpan<'text>)>;
+}
+
+macro_rules! impl_lexer_from_scanner {
+    ($lifetime:lifetime, $lexer:ty, $token:ty, $scanner:ident) => {
+        impl<$lifetime> $crate::Lexer<$lifetime> for $lexer {
+            type Token = $token;
+
+            #[inline]
+            fn scanner(&self) -> &Scanner<$lifetime> {
+                &self.$scanner
+            }
+
+            #[inline]
+            fn scanner_mut(&mut self) -> &mut Scanner<$lifetime> {
+                &mut self.$scanner
+            }
+        }
+
+        $crate::impl_iter_for_lexer!($lifetime, $lexer);
+    };
+}
+
+pub(crate) use impl_lexer_from_scanner;
+
+macro_rules! impl_iter_for_lexer {
+    ($lifetime:lifetime, $lexer:ty) => {
+        impl<$lifetime> Iterator for $lexer {
+            type Item = (
+                <Self as $crate::Lexer<$lifetime>>::Token,
+                TokenSpan<$lifetime>,
+            );
+
+            #[inline]
+            fn next(&mut self) -> Option<Self::Item> {
+                $crate::Lexer::next_token(self)
+            }
+        }
+
+        impl<$lifetime> std::iter::FusedIterator for $lexer {}
+    };
+}
+
+pub(crate) use impl_iter_for_lexer;
+
 pub(crate) trait ScannerExt<'text> {
     fn span(&self, range: Range<usize>) -> TokenSpan<'text>;
 }

@@ -658,6 +658,21 @@ impl<'text> Scanner<'text> {
             }
         }
     }
+
+    /// Calls `f` with a <code>&mut [Scanner]</code> of this
+    /// <code>&[Scanner]</code>, i.e. a [`Scanner`] with the
+    /// same [`text()`], [`remaining_text()`], and [`cursor_pos()`].
+    ///
+    /// [`text()`]: Self::text
+    /// [`remaining_text()`]: Self::remaining_text
+    /// [`cursor_pos()`]: Self::cursor_pos
+    pub fn peeking<T, F>(&self, f: F) -> T
+    where
+        F: FnOnce(&mut Self) -> T,
+    {
+        let mut scanner = self.clone();
+        f(&mut scanner)
+    }
 }
 
 // Currently not publicly exported, as using e.g. `accept_if()` with a

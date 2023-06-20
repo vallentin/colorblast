@@ -1,8 +1,6 @@
-use std::iter::FusedIterator;
-
 use text_scanner::{ext::CScannerExt, Scanner};
 
-use crate::{ScannerExt, TokenSpan};
+use crate::{impl_lexer_from_scanner, ScanToken, ScannerExt, TokenSpan};
 
 // Reference: https://en.cppreference.com/w/cpp/keyword
 #[rustfmt::skip]
@@ -43,8 +41,9 @@ pub enum CppToken {
     Unknown,
 }
 
-impl CppToken {
-    pub fn scan<'text>(scanner: &mut Scanner<'text>) -> Option<(Self, TokenSpan<'text>)> {
+impl ScanToken for CppToken {
+    #[inline]
+    fn scan_token<'text>(scanner: &mut Scanner<'text>) -> Option<(Self, TokenSpan<'text>)> {
         let (r, _s) = scanner.skip_whitespace();
         if !r.is_empty() {
             return Some((Self::Space, scanner.span(r)));
@@ -164,16 +163,7 @@ impl<'text> CppLexer<'text> {
     }
 }
 
-impl<'text> Iterator for CppLexer<'text> {
-    type Item = (CppToken, TokenSpan<'text>);
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        CppToken::scan(&mut self.scanner)
-    }
-}
-
-impl FusedIterator for CppLexer<'_> {}
+impl_lexer_from_scanner!('text, CppLexer<'text>, CppToken, scanner);
 
 #[cfg(test)]
 mod tests {

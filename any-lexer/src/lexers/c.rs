@@ -1,8 +1,6 @@
-use std::iter::FusedIterator;
-
 use text_scanner::{ext::CScannerExt, Scanner};
 
-use crate::{ScannerExt, TokenSpan};
+use crate::{impl_lexer_from_scanner, ScanToken, ScannerExt, TokenSpan};
 
 // Reference: https://learn.microsoft.com/en-us/cpp/c-language/c-keywords?view=msvc-170#standard-c-keywords
 #[rustfmt::skip]
@@ -45,8 +43,9 @@ pub enum CToken {
     Unknown,
 }
 
-impl CToken {
-    pub fn scan<'text>(scanner: &mut Scanner<'text>) -> Option<(Self, TokenSpan<'text>)> {
+impl ScanToken for CToken {
+    #[inline]
+    fn scan_token<'text>(scanner: &mut Scanner<'text>) -> Option<(Self, TokenSpan<'text>)> {
         let (r, _s) = scanner.skip_whitespace();
         if !r.is_empty() {
             return Some((Self::Space, scanner.span(r)));
@@ -157,16 +156,7 @@ impl<'text> CLexer<'text> {
     }
 }
 
-impl<'text> Iterator for CLexer<'text> {
-    type Item = (CToken, TokenSpan<'text>);
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        CToken::scan(&mut self.scanner)
-    }
-}
-
-impl FusedIterator for CLexer<'_> {}
+impl_lexer_from_scanner!('text, CLexer<'text>, CToken, scanner);
 
 #[cfg(test)]
 mod tests {

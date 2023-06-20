@@ -1,8 +1,6 @@
-use std::iter::FusedIterator;
-
 use text_scanner::{ext::RustScannerExt, Scanner};
 
-use crate::{ScannerExt, TokenSpan};
+use crate::{impl_lexer_from_scanner, ScanToken, ScannerExt, TokenSpan};
 
 #[rustfmt::skip]
 const KEYWORDS: [&str; 53] = [
@@ -38,8 +36,9 @@ pub enum RustToken {
     Unknown,
 }
 
-impl RustToken {
-    pub fn scan<'text>(scanner: &mut Scanner<'text>) -> Option<(Self, TokenSpan<'text>)> {
+impl ScanToken for RustToken {
+    #[inline]
+    fn scan_token<'text>(scanner: &mut Scanner<'text>) -> Option<(Self, TokenSpan<'text>)> {
         let (r, _s) = scanner.skip_whitespace();
         if !r.is_empty() {
             return Some((Self::Space, scanner.span(r)));
@@ -168,16 +167,7 @@ impl<'text> RustLexer<'text> {
     }
 }
 
-impl<'text> Iterator for RustLexer<'text> {
-    type Item = (RustToken, TokenSpan<'text>);
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        RustToken::scan(&mut self.scanner)
-    }
-}
-
-impl FusedIterator for RustLexer<'_> {}
+impl_lexer_from_scanner!('text, RustLexer<'text>, RustToken, scanner);
 
 #[cfg(test)]
 mod tests {
