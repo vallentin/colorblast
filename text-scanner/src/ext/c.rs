@@ -19,8 +19,7 @@ impl<'text> CScannerExt<'text> for Scanner<'text> {
     // Reference: https://learn.microsoft.com/en-us/cpp/c-language/c-comments?view=msvc-170
     fn scan_c_line_comment(&mut self) -> ScannerResult<'text, &'text str> {
         self.scan_with(|scanner| {
-            scanner.accept_char('/')?;
-            scanner.accept_char('/')?;
+            scanner.accept_str("//")?;
             scanner.skip_until_char_any(&['\n', '\r']);
             Ok(())
         })
@@ -29,8 +28,7 @@ impl<'text> CScannerExt<'text> for Scanner<'text> {
     // Reference: https://learn.microsoft.com/en-us/cpp/c-language/c-comments?view=msvc-170
     fn scan_c_block_comment(&mut self) -> ScannerResult<'text, &'text str> {
         self.scan_with(|scanner| {
-            scanner.accept_char('/')?;
-            scanner.accept_char('*')?;
+            scanner.accept_str("/*")?;
 
             loop {
                 scanner.skip_until_char('*');

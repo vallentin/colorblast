@@ -537,8 +537,7 @@ impl<'text> RustScannerExt<'text> for Scanner<'text> {
     // Reference: https://doc.rust-lang.org/reference/comments.html
     fn scan_rust_line_comment(&mut self) -> ScannerResult<'text, &'text str> {
         self.scan_with(|scanner| {
-            scanner.accept_char('/')?;
-            scanner.accept_char('/')?;
+            scanner.accept_str("//")?;
             scanner.skip_until_char_any(&['\n', '\r']);
             Ok(())
         })
@@ -547,8 +546,7 @@ impl<'text> RustScannerExt<'text> for Scanner<'text> {
     // Reference: https://doc.rust-lang.org/reference/comments.html
     fn scan_rust_block_comment(&mut self) -> ScannerResult<'text, &'text str> {
         self.scan_with(|scanner| {
-            scanner.accept_char('/')?;
-            scanner.accept_char('*')?;
+            scanner.accept_str("/*")?;
             let mut open = 1;
             loop {
                 scanner.skip_until_char_any(&['*', '/']);
@@ -587,8 +585,7 @@ impl<'text> RustScannerExt<'text> for Scanner<'text> {
     // Reference: https://doc.rust-lang.org/reference/identifiers.html
     fn scan_rust_raw_identifier(&mut self) -> ScannerResult<'text, &'text str> {
         self.scan_with(|scanner| {
-            scanner.accept_char('r')?;
-            scanner.accept_char('#')?;
+            scanner.accept_str("r#")?;
             scanner.scan_rust_identifier()?;
             Ok(())
         })
@@ -677,8 +674,7 @@ impl<'text> RustScannerExt<'text> for Scanner<'text> {
     // Reference: https://doc.rust-lang.org/reference/tokens.html#integer-literals
     fn scan_rust_int_hex(&mut self) -> ScannerResult<'text, &'text str> {
         self.scan_with(|scanner| {
-            scanner.accept_char('0')?;
-            scanner.accept_char('x')?;
+            scanner.accept_str("0x")?;
 
             scanner.skip_while_char('_');
             scanner.accept_if_ext(char::is_ascii_hexdigit)?;
@@ -692,8 +688,7 @@ impl<'text> RustScannerExt<'text> for Scanner<'text> {
     // Reference: https://doc.rust-lang.org/reference/tokens.html#integer-literals
     fn scan_rust_int_oct(&mut self) -> ScannerResult<'text, &'text str> {
         self.scan_with(|scanner| {
-            scanner.accept_char('0')?;
-            scanner.accept_char('o')?;
+            scanner.accept_str("0o")?;
 
             scanner.skip_while_char('_');
             scanner.accept_if(CharExt::is_ascii_octdigit)?;
@@ -707,8 +702,7 @@ impl<'text> RustScannerExt<'text> for Scanner<'text> {
     // Reference: https://doc.rust-lang.org/reference/tokens.html#integer-literals
     fn scan_rust_int_bin(&mut self) -> ScannerResult<'text, &'text str> {
         self.scan_with(|scanner| {
-            scanner.accept_char('0')?;
-            scanner.accept_char('b')?;
+            scanner.accept_str("0b")?;
 
             scanner.skip_while_char('_');
             scanner.accept_if(CharExt::is_ascii_bindigit)?;

@@ -119,9 +119,15 @@ impl<'text> Scanner<'text> {
     /// [empty]: https://doc.rust-lang.org/std/primitive.str.html#method.is_empty
     #[inline]
     pub fn has_remaining_text(&self) -> bool {
-        !self.text[self.cursor..].is_empty()
+        self.cursor < self.text.len()
     }
 
+    /// Utility for turning a `Range<usize>` into `(Range<usize>, &'text str)`.
+    /// Where `range` is the start end end byte index relative to [`text()`].
+    ///
+    /// The same as `(range.clone(), &self.text()[range])`.
+    ///
+    /// [`text()`]: Self::text
     #[inline]
     pub fn ranged_text(&self, range: Range<usize>) -> ScannerItem<&'text str> {
         (range.clone(), &self.text[range])
@@ -280,6 +286,9 @@ impl<'text> Scanner<'text> {
     /// Returns an iterator that produces all the remaining [`char`]s
     /// and their [`Range`]s, if any, without advancing the cursor position.
     ///
+    /// **Note:** This has the same lifetime as the original `text`,
+    /// so the scanner can continue to be used while this exists.
+    ///
     /// # Example
     ///
     /// ```rust
@@ -377,7 +386,10 @@ impl<'text> Scanner<'text> {
     /// Panics in non-optimized builds, if `expected` is [empty].
     ///
     /// In optimized builds <code>Err(([cursor]..[cursor], &quot;&quot;))</code>
-    /// is returned instead.
+    /// is returned instead, regardless of whether there is any remaining
+    /// characters.
+    ///
+    /// In short there is a <code>[debug_assert!]\(!expected.is_empty())</code>.
     ///
     /// # Example
     ///
@@ -408,6 +420,147 @@ impl<'text> Scanner<'text> {
         } else {
             Err((self.cursor..self.cursor, ""))
         }
+    }
+
+    /// Advances the scanner cursor and returns `Ok` with the `&'text str`
+    /// and its [`Range`], if the next characters matches the characters
+    /// in `expected`. If not, then an `Err` is returned, with the longest
+    /// matching substring and its [`Range`].
+    ///
+    /// **Note:** The returned string slice has the same lifetime as
+    /// the original `text`, so the scanner can continue to be used
+    /// while this exists.
+    ///
+    /// If `expected` is only 1 character, then use [`accept_char()`]
+    /// instead.
+    ///
+    /// # Panics
+    ///
+    /// Panics in non-optimized builds, if `expected` is [empty].
+    ///
+    /// In optimized builds <code>Err(([cursor]..[cursor], &quot;&quot;))</code>
+    /// is returned instead, regardless of whether there is any remaining
+    /// characters.
+    ///
+    /// In short there is a <code>[debug_assert!]\(!expected.is_empty())</code>.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # use text_scanner::Scanner;
+    /// let mut scanner = Scanner::new("FooBaaar");
+    ///
+    /// // The next 3 characters matches "Foo", so `Ok` is returned
+    /// assert_eq!(scanner.accept_str("Foo"), Ok((0..3, "Foo")));
+    ///
+    /// // The next 3 characters is "Baa" not "Bar", so `Err` is
+    /// // returned, with the longest matching part, i.e. "Ba"
+    /// assert_eq!(scanner.accept_str("Bar"), Err((3..5, "Ba")));
+    ///
+    /// assert_eq!(scanner.remaining_text(), "Baaar");
+    /// ```
+    ///
+    /// [`accept_char()`]: Self::accept_char
+    /// [cursor]: Self::cursor_pos
+    /// [empty]: https://doc.rust-lang.org/std/primitive.str.html#method.is_empty
+    pub fn accept_str(&mut self, expected: &str) -> ScannerResult<'text, &'text str> {
+        debug_assert!(!expected.is_empty(), "`expected` is empty");
+        if expected.is_empty() {
+            return Err((self.cursor..self.cursor, ""));
+        }
+
+        let start = self.cursor;
+
+        let mut chars = self.peek_iter();
+        for expected in expected.chars() {
+            match chars.next() {
+                Some((r, c)) if c == expected => {
+                    self.cursor = r.end;
+                }
+                _ => {
+                    let end = self.cursor;
+                    self.cursor = start;
+                    return Err(self.ranged_text(start..end));
+                }
+            }
+        }
+
+        Ok(self.ranged_text(start..self.cursor))
+    }
+
+    /// Advances the scanner cursor and returns `Ok` with the `&'text str`
+    /// and its [`Range`], if the next characters matches any `&str`
+    /// in `expected`. If not, then an `Err` is returned, with the longest
+    /// matching substring and its [`Range`].
+    ///
+    /// **Warning:** The strings are tested in sequential order, thereby
+    /// if `accept_str_any()` is called with e.g. `["foo", "foobar"]`,
+    /// then `"foobar"` would never be tested, as `"foo"` would be
+    /// matched and return `Ok` beforehand. Instead simply change the
+    /// order of the strings into longest-to-shortest order,
+    /// i.e. `["foo", "foobar"]` into `["foobar", "foo"]`.
+    ///
+    /// **Note:** The returned string slice has the same lifetime as
+    /// the original `text`, so the scanner can continue to be used
+    /// while this exists.
+    ///
+    /// If `expected` only contains 1 character strings, then use
+    /// [`accept_char_any()`] instead.
+    ///
+    /// # Panics
+    ///
+    /// Panics in non-optimized builds, if `expected` is [empty],
+    /// or if `expected` contains an [empty][empty2] `&str`.
+    ///
+    /// In optimized builds <code>Err(([cursor]..[cursor], &quot;&quot;))</code>
+    /// is returned instead, regardless of whether there is any remaining
+    /// characters.
+    ///
+    /// In short there is a <code>[debug_assert!]\(!expected.is_empty())</code>
+    /// (along with a similar assertion for the strings).
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # use text_scanner::Scanner;
+    /// let mut scanner = Scanner::new("FooBarFooBaaar");
+    ///
+    /// let any = &["Foo", "Bar"];
+    ///
+    /// // The next 3 characters matches "Foo", so `Ok` is returned
+    /// assert_eq!(scanner.accept_str_any(any), Ok((0..3, "Foo")));
+    /// assert_eq!(scanner.accept_str_any(any), Ok((3..6, "Bar")));
+    /// assert_eq!(scanner.accept_str_any(any), Ok((6..9, "Foo")));
+    ///
+    /// // The next 3 characters is "Baa" not "Foo" nor "Bar", so `Err`
+    /// // is returned, with the longest matching part, i.e. "Ba"
+    /// assert_eq!(scanner.accept_str_any(any), Err((9..11, "Ba")));
+    ///
+    /// assert_eq!(scanner.remaining_text(), "Baaar");
+    /// ```
+    ///
+    /// [`accept_char_any()`]: Self::accept_char_any
+    /// [cursor]: Self::cursor_pos
+    /// [empty]: https://doc.rust-lang.org/std/primitive.slice.html#method.is_empty
+    /// [empty2]: https://doc.rust-lang.org/std/primitive.str.html#method.is_empty
+    pub fn accept_str_any(&mut self, expected: &[&str]) -> ScannerResult<'text, &'text str> {
+        debug_assert!(!expected.is_empty(), "`expected` is empty");
+        if expected.is_empty() {
+            return Err((self.cursor..self.cursor, ""));
+        }
+
+        let mut max_end = self.cursor;
+        for expected in expected {
+            match self.accept_str(expected) {
+                Ok((r, s)) => return Ok((r, s)),
+                Err((r, _s)) => {
+                    max_end = max_end.max(r.end);
+                }
+            }
+        }
+
+        let r = self.cursor..max_end;
+        Err(self.ranged_text(r))
     }
 
     /// Advances the scanner cursor and skips zero-to-many characters,
@@ -501,6 +654,98 @@ impl<'text> Scanner<'text> {
         self.skip_while(|c| expected.contains(&c))
     }
 
+    /// Skips zero-to-many characters, while the next characters
+    /// matches the characters in `expected` completely.
+    ///
+    /// **Note:** The returned string slice has the same lifetime as
+    /// the original `text`, so the scanner can continue to be used
+    /// while this exists.
+    ///
+    /// If `expected` is only 1 character, then use [`skip_while_char()`]
+    /// instead.
+    ///
+    /// # Panics
+    ///
+    /// Panics in non-optimized builds, if `expected` is [empty].
+    ///
+    /// In optimized builds 0 characters are skipped, and
+    /// <code>([cursor]..[cursor], &quot;&quot;)</code> is returned instead,
+    /// regardless of whether there is any remaining characters.
+    ///
+    /// In short there is a <code>[debug_assert!]\(!expected.is_empty())</code>.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # use text_scanner::Scanner;
+    /// let mut scanner = Scanner::new("FooFooFooBarBaz");
+    /// assert_eq!(scanner.skip_while_str("Foo"), (0..9, "FooFooFoo"));
+    /// assert_eq!(scanner.remaining_text(), "BarBaz");
+    /// ```
+    ///
+    /// [`skip_while_char()`]: Self::skip_while_char
+    /// [cursor]: Self::cursor_pos
+    /// [empty]: https://doc.rust-lang.org/std/primitive.str.html#method.is_empty
+    #[inline]
+    pub fn skip_while_str(&mut self, expected: &str) -> ScannerItem<&'text str> {
+        let start = self.cursor;
+
+        while self.accept_str(expected).is_ok() {}
+
+        self.ranged_text(start..self.cursor)
+    }
+
+    /// Skips zero-to-many characters, while the next characters
+    /// matches the characters of any `&str` in `expected` completely.
+    ///
+    /// **Warning:** The strings are tested in sequential order, thereby
+    /// if `skip_while_str_any()` is called with e.g. `["foo", "foobar"]`,
+    /// then `"foobar"` would never be tested, as `"foo"` would be
+    /// matched and continue beforehand. Instead simply change the
+    /// order of the strings into longest-to-shortest order,
+    /// i.e. `["foo", "foobar"]` into `["foobar", "foo"]`.
+    ///
+    /// **Note:** The returned string slice has the same lifetime as
+    /// the original `text`, so the scanner can continue to be used
+    /// while this exists.
+    ///
+    /// If `expected` only contains 1 character strings, then use
+    /// [`skip_while_char_any()`] instead.
+    ///
+    /// # Panics
+    ///
+    /// Panics in non-optimized builds, if `expected` is [empty],
+    /// or if `expected` contains an [empty][empty2] `&str`.
+    ///
+    /// In optimized builds 0 characters are skipped, and
+    /// <code>([cursor]..[cursor], &quot;&quot;)</code> is returned instead,
+    /// regardless of whether there is any remaining characters.
+    ///
+    /// In short there is a <code>[debug_assert!]\(!expected.is_empty())</code>
+    /// (along with a similar assertion for the strings).
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # use text_scanner::Scanner;
+    /// let mut scanner = Scanner::new("FooBarFooBarFooBaaarBaz");
+    /// assert_eq!(scanner.skip_while_str_any(&["Foo", "Bar"]), (0..15, "FooBarFooBarFoo"));
+    /// assert_eq!(scanner.remaining_text(), "BaaarBaz");
+    /// ```
+    ///
+    /// [`skip_while_char_any()`]: Self::skip_while_char_any
+    /// [cursor]: Self::cursor_pos
+    /// [empty]: https://doc.rust-lang.org/std/primitive.slice.html#method.is_empty
+    /// [empty2]: https://doc.rust-lang.org/std/primitive.str.html#method.is_empty
+    #[inline]
+    pub fn skip_while_str_any(&mut self, expected: &[&str]) -> ScannerItem<&'text str> {
+        let start = self.cursor;
+
+        while self.accept_str_any(expected).is_ok() {}
+
+        self.ranged_text(start..self.cursor)
+    }
+
     /// Advances the scanner cursor and skips zero-to-many characters,
     /// **while** `f(c)` returns `false`, where `c` is the [remaining characters]
     /// in sequential order.
@@ -581,6 +826,107 @@ impl<'text> Scanner<'text> {
     #[inline]
     pub fn skip_until_char_any(&mut self, expected: &[char]) -> ScannerItem<&'text str> {
         self.skip_until(|c| expected.contains(&c))
+    }
+
+    /// Skips zero-to-many characters, until the next characters
+    /// matches the characters in `expected` completely.
+    ///
+    /// **Note:** The returned string slice has the same lifetime as
+    /// the original `text`, so the scanner can continue to be used
+    /// while this exists.
+    ///
+    /// If `expected` is only 1 character, then use [`skip_until_char()`]
+    /// instead.
+    ///
+    /// # Panics
+    ///
+    /// Panics in non-optimized builds, if `expected` is [empty].
+    ///
+    /// In optimized builds 0 characters are skipped, and
+    /// <code>([cursor]..[cursor], &quot;&quot;)</code> is returned instead,
+    /// regardless of whether there is any remaining characters.
+    ///
+    /// In short there is a <code>[debug_assert!]\(!expected.is_empty())</code>.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # use text_scanner::Scanner;
+    /// let mut scanner = Scanner::new("FooFooFooBarBaz");
+    /// assert_eq!(scanner.skip_until_str("Bar"), (0..9, "FooFooFoo"));
+    /// assert_eq!(scanner.remaining_text(), "BarBaz");
+    /// ```
+    ///
+    /// [`skip_until_char()`]: Self::skip_until_char
+    /// [cursor]: Self::cursor_pos
+    /// [empty]: https://doc.rust-lang.org/std/primitive.str.html#method.is_empty
+    pub fn skip_until_str(&mut self, expected: &str) -> ScannerItem<&'text str> {
+        let remaining_text = self.remaining_text();
+        let end = remaining_text
+            .find(expected)
+            .unwrap_or(remaining_text.len());
+
+        let start = self.cursor;
+        self.cursor = end;
+
+        self.ranged_text(start..end)
+    }
+
+    /// Skips zero-to-many characters, until the next characters
+    /// matches the characters of any `&str` in `expected` completely.
+    ///
+    /// **Warning:** The strings are tested in sequential order, thereby
+    /// if `skip_until_str_any()` is called with e.g. `["foo", "foobar"]`,
+    /// then `"foobar"` would never be tested, as `"foo"` would be
+    /// matched and continue beforehand. Instead simply change the
+    /// order of the strings into longest-to-shortest order,
+    /// i.e. `["foo", "foobar"]` into `["foobar", "foo"]`.
+    ///
+    /// **Note:** The returned string slice has the same lifetime as
+    /// the original `text`, so the scanner can continue to be used
+    /// while this exists.
+    ///
+    /// If `expected` only contains 1 character strings, then use
+    /// [`skip_until_char_any()`] instead.
+    ///
+    /// # Panics
+    ///
+    /// Panics in non-optimized builds, if `expected` is [empty],
+    /// or if `expected` contains an [empty][empty2] `&str`.
+    ///
+    /// In optimized builds 0 characters are skipped, and
+    /// <code>([cursor]..[cursor], &quot;&quot;)</code> is returned instead,
+    /// regardless of whether there is any remaining characters.
+    ///
+    /// In short there is a <code>[debug_assert!]\(!expected.is_empty())</code>
+    /// (along with a similar assertion for the strings).
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # use text_scanner::Scanner;
+    /// let mut scanner = Scanner::new("FooBarFooBarFooBaaarBaz");
+    /// assert_eq!(scanner.skip_until_str_any(&["Baaar", "Baz"]), (0..15, "FooBarFooBarFoo"));
+    /// assert_eq!(scanner.remaining_text(), "BaaarBaz");
+    /// ```
+    ///
+    /// [`skip_until_char_any()`]: Self::skip_until_char_any
+    /// [cursor]: Self::cursor_pos
+    /// [empty]: https://doc.rust-lang.org/std/primitive.slice.html#method.is_empty
+    /// [empty2]: https://doc.rust-lang.org/std/primitive.str.html#method.is_empty
+    pub fn skip_until_str_any(&mut self, expected: &[&str]) -> ScannerItem<&'text str> {
+        let start = self.cursor;
+
+        while self.has_remaining_text() {
+            if let Ok((r, _)) = self.accept_str_any(expected) {
+                self.cursor = r.start;
+                break;
+            }
+
+            _ = self.next();
+        }
+
+        self.ranged_text(start..self.cursor)
     }
 
     /// Skips zero-to-many characters, while the next character
@@ -746,5 +1092,25 @@ impl CharExt for char {
     }
 }
 
-// If you are looking for tests, then they are
-// all implemented in the form of doc tests
+// If you are looking for tests, then the majority
+// are implemented in the form of doc tests
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_accept_str_any_order() {
+        let mut scanner = Scanner::new("FooBarBaz");
+
+        #[rustfmt::skip]
+        assert_eq!(scanner.accept_str_any(&["Foo", "FooBar"]), Ok((0..3, "Foo")));
+        assert_eq!(scanner.remaining_text(), "BarBaz");
+
+        scanner.reset();
+
+        #[rustfmt::skip]
+        assert_eq!(scanner.accept_str_any(&["FooBar", "Foo"]), Ok((0..6, "FooBar")));
+        assert_eq!(scanner.remaining_text(), "Baz");
+    }
+}
