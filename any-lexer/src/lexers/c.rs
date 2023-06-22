@@ -142,6 +142,11 @@ impl ScanToken for CToken {
     }
 }
 
+/// C lexer producing [`CToken`]s.
+///
+/// **Note:** Cloning `CLexer` is essentially a copy, as it just contains
+/// a `&str` and a `usize` for its `cursor`. However, `Copy` is not
+/// implemented, to avoid accidentally copying immutable `CLexer`s.
 #[derive(Clone, Debug)]
 pub struct CLexer<'text> {
     scanner: Scanner<'text>,

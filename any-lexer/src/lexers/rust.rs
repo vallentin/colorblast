@@ -153,6 +153,11 @@ impl ScanToken for RustToken {
     }
 }
 
+/// Rust lexer producing [`RustToken`]s.
+///
+/// **Note:** Cloning `RustLexer` is essentially a copy, as it just contains
+/// a `&str` and a `usize` for its `cursor`. However, `Copy` is not
+/// implemented, to avoid accidentally copying immutable `RustLexer`s.
 #[derive(Clone, Debug)]
 pub struct RustLexer<'text> {
     scanner: Scanner<'text>,

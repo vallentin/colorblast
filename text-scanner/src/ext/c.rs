@@ -1,6 +1,7 @@
 use crate::{CharExt, Scanner, ScannerResult};
 
-pub trait CScannerExt<'text> {
+/// [`Scanner`] extension for scanning C tokens.
+pub trait CScannerExt<'text>: crate::private::Sealed {
     fn scan_c_line_comment(&mut self) -> ScannerResult<'text, &'text str>;
     fn scan_c_block_comment(&mut self) -> ScannerResult<'text, &'text str>;
 
@@ -470,6 +471,7 @@ mod tests {
             ("\" \"", Ok((0..3, "\" \"")), ""),
             ("\"Foo Bar\"", Ok((0..9, "\"Foo Bar\"")), ""),
             //
+            ("\"Foo \n Bar\"", Ok((0..5, "\"Foo ")), "\n Bar\""),
             ("\"Foo \\n Bar\"", Ok((0..12, "\"Foo \\n Bar\"")), ""),
             //
             ("\"Foo \\\" Bar\"", Ok((0..12, "\"Foo \\\" Bar\"")), ""),

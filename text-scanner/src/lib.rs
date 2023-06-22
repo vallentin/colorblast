@@ -12,6 +12,13 @@ pub mod prelude {
     pub use super::{ScanResult, Scanner, ScannerItem, ScannerResult};
 }
 
+mod private {
+    pub trait Sealed {}
+
+    impl Sealed for crate::Scanner<'_> {}
+    impl Sealed for str {}
+}
+
 pub use char_ranges::{CharRanges, CharRangesExt, CharRangesOffset};
 
 use std::ops::Range;
@@ -26,6 +33,10 @@ pub type ScanResult<'text> = Result<(), ScannerItem<&'text str>>;
 /// for scanning a string slice, as well as backtracking capabilities, which
 /// can be used to implement lexers for tokenizing text or code. It is essentially
 /// just a fancy wrapper around [`CharRanges`].
+///
+/// **Note:** Cloning `Scanner` is essentially a copy, as it just contains
+/// a `&str` and a `usize` for its `cursor`. However, `Copy` is not
+/// implemented, to avoid accidentally copying immutable `Scanner`s.
 #[derive(Clone, Debug)]
 pub struct Scanner<'text> {
     text: &'text str,

@@ -149,6 +149,11 @@ impl ScanToken for CppToken {
     }
 }
 
+/// C++ lexer producing [`CppToken`]s.
+///
+/// **Note:** Cloning `CppLexer` is essentially a copy, as it just contains
+/// a `&str` and a `usize` for its `cursor`. However, `Copy` is not
+/// implemented, to avoid accidentally copying immutable `CppLexer`s.
 #[derive(Clone, Debug)]
 pub struct CppLexer<'text> {
     scanner: Scanner<'text>,

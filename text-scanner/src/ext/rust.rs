@@ -4,7 +4,7 @@ use crate::{CharExt, Scanner, ScannerResult};
 ///
 /// **Note:** When using the `scan_rust_*()` methods, the order they are
 /// called matters.
-pub trait RustScannerExt<'text> {
+pub trait RustScannerExt<'text>: crate::private::Sealed {
     /// Scans a single [Rust line comment].
     ///
     /// **Note:** This has the same lifetime as the original `text`,
@@ -723,7 +723,8 @@ impl<'text> RustScannerExt<'text> for Scanner<'text> {
                 if scanner.accept_char_any(&['e', 'E']).is_ok() {
                     _ = scanner.accept_char_any(&['+', '-']);
 
-                    scanner.accept_if(|c| c.is_ascii_digit() || (c == '_'))?;
+                    scanner.skip_while_char('_');
+                    scanner.accept_if_ext(char::is_ascii_digit)?;
                     scanner.skip_while(|c| c.is_ascii_digit() || (c == '_'));
                 }
             }
