@@ -12,5 +12,9 @@ readme = "README.md"
 [badges]
 maintenance = { status = "actively-developed" }
 
+[features]
+default = ["ext"]
+ext = []
+
 [dependencies]
 char-ranges = "0.1"

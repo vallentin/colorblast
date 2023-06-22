@@ -6,6 +6,7 @@
 #![forbid(unsafe_code)]
 #![forbid(elided_lifetimes_in_paths)]
 
+#[cfg(feature = "ext")]
 pub mod ext;
 
 pub mod prelude {
