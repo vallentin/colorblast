@@ -85,6 +85,10 @@ pub trait CssScannerExt<'text> {
     /// [CSS identifier]: https://www.w3.org/TR/css-syntax-3/#ident-token-diagram
     fn scan_css_identifier(&mut self) -> ScannerResult<'text, &'text str>;
 
+    fn scan_css_at_keyword(&mut self) -> ScannerResult<'text, &'text str>;
+
+    fn scan_css_hash(&mut self) -> ScannerResult<'text, &'text str>;
+
     /// Scans a single [CSS string].
     ///
     /// **Note:** This has the same lifetime as the original `text`,
@@ -209,6 +213,24 @@ impl<'text> CssScannerExt<'text> for Scanner<'text> {
                 scanner.skip_while(|c| c.is_alphanumeric() || matches!(c, '_' | '-'));
             }
 
+            Ok(())
+        })
+    }
+
+    // Reference: https://www.w3.org/TR/css-syntax-3/#at-keyword-token-diagram
+    fn scan_css_at_keyword(&mut self) -> ScannerResult<'text, &'text str> {
+        self.scan_with(|scanner| {
+            scanner.accept_char('@')?;
+            scanner.scan_css_identifier()?;
+            Ok(())
+        })
+    }
+
+    // Reference: https://www.w3.org/TR/css-syntax-3/#hash-token-diagram
+    fn scan_css_hash(&mut self) -> ScannerResult<'text, &'text str> {
+        self.scan_with(|scanner| {
+            scanner.accept_char('#')?;
+            scanner.scan_css_identifier()?;
             Ok(())
         })
     }
