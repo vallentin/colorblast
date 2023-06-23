@@ -1,6 +1,6 @@
 [package]
 name = "text-scanner"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2021"
 description = "A UTF-8 char-oriented, zero-copy, text and code scanning library"
 keywords = ["lexer", "tokenization", "token", "streaming", "parsing"]
