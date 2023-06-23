@@ -1,6 +1,10 @@
 use crate::{Scanner, ScannerResult};
 
 /// [`Scanner`] extension for scanning CSS tokens.
+///
+/// See also [`ScssScannerExt`].
+///
+/// [`ScssScannerExt`]: super::ScssScannerExt
 pub trait CssScannerExt<'text> {
     /// Scans a single [CSS block comment].
     ///
