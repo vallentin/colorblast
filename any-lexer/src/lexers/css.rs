@@ -67,6 +67,10 @@ impl ScanToken for CssToken {
 /// **Note:** Cloning `CssLexer` is essentially a copy, as it just contains
 /// a `&str` and a `usize` for its `cursor`. However, `Copy` is not
 /// implemented, to avoid accidentally copying immutable `CssLexer`s.
+///
+/// See also [`ScssLexer`].
+///
+/// [`ScssLexer`]: super::ScssLexer
 #[derive(Clone, Debug)]
 pub struct CssLexer<'text> {
     scanner: Scanner<'text>,

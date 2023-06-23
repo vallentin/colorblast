@@ -5,7 +5,7 @@ use crate::{Scanner, ScannerResult};
 /// See also [`ScssScannerExt`].
 ///
 /// [`ScssScannerExt`]: super::ScssScannerExt
-pub trait CssScannerExt<'text> {
+pub trait CssScannerExt<'text>: crate::private::Sealed {
     /// Scans a single [CSS block comment].
     ///
     /// **Note:** CSS block comments do **not** allow nested block comments.

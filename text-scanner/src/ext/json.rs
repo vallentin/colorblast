@@ -1,7 +1,7 @@
 use crate::{Scanner, ScannerResult};
 
 /// [`Scanner`] extension for scanning JSON tokens.
-pub trait JsonScannerExt<'text> {
+pub trait JsonScannerExt<'text>: crate::private::Sealed {
     fn scan_json_string(&mut self) -> ScannerResult<'text, &'text str>;
     fn scan_json_number(&mut self) -> ScannerResult<'text, &'text str>;
 }
