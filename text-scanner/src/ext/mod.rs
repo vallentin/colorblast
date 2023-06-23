@@ -12,12 +12,14 @@
 //! [`RustLexer`]: https://docs.rs/any-lexer/*/any_lexer/struct.RustLexer.html
 
 mod c;
+mod css;
 mod json;
 mod jsonc;
 mod python;
 mod rust;
 
 pub use self::c::*;
+pub use self::css::*;
 pub use self::json::*;
 pub use self::jsonc::*;
 pub use self::python::*;
