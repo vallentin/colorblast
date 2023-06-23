@@ -28,7 +28,6 @@ pub enum PythonToken {
 }
 
 impl ScanToken for PythonToken {
-    #[inline]
     fn scan_token<'text>(scanner: &mut Scanner<'text>) -> Option<(Self, TokenSpan<'text>)> {
         let (r, _s) = scanner.skip_whitespace();
         if !r.is_empty() {
