@@ -13,4 +13,4 @@ readme = "README.md"
 maintenance = { status = "experimental" }
 
 [dependencies]
-any-lexer = { path = "../any-lexer", version = "0.0.1" }
+any-lexer = { path = "../any-lexer", version = "0.0.2" }
