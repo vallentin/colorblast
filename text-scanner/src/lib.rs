@@ -234,6 +234,7 @@ impl<'text> Scanner<'text> {
     /// assert_eq!(scanner.remaining_text(), "");
     /// ```
     #[inline]
+    #[allow(clippy::should_implement_trait)]
     pub fn next(&mut self) -> ScannerResult<'text, char> {
         let (r, c) = self.peek()?;
         self.cursor = r.end;
@@ -1085,6 +1086,7 @@ where
     }
 }
 
+#[allow(clippy::wrong_self_convention)]
 pub(crate) trait CharExt {
     // `std::char::is_ascii_octdigit` is unstable
     fn is_ascii_octdigit(self) -> bool;

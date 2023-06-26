@@ -95,10 +95,8 @@ impl ScanToken for CppToken {
                 }
                 '-' => {
                     let res = scanner.accept_char_any(&['-', '=']);
-                    if res.is_err() {
-                        if scanner.accept_char('>').is_ok() {
-                            let _ = scanner.accept_char('*');
-                        }
+                    if res.is_err() && scanner.accept_char('>').is_ok() {
+                        let _ = scanner.accept_char('*');
                     }
                 }
                 '*' | '/' | '%' | '^' | '!' => {

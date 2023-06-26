@@ -48,6 +48,11 @@ impl<'text> TokenSpan<'text> {
     pub fn len(&self) -> usize {
         self.range.len()
     }
+
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.range.is_empty()
+    }
 }
 
 impl fmt::Debug for TokenSpan<'_> {

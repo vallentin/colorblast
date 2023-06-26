@@ -1,7 +1,7 @@
 use crate::{CharExt, ScanResult, Scanner, ScannerResult};
 
 // Reference: https://docs.python.org/3/reference/lexical_analysis.html#keywords
-pub const PYTHON_KEYWORDS: &'static [&'static str] = &[
+pub const PYTHON_KEYWORDS: &[&str] = &[
     "False", "await", "else", "import", "pass", "None", "break", "except", "in", "raise", "True",
     "class", "finally", "is", "return", "and", "continue", "for", "lambda", "try", "as", "def",
     "from", "nonlocal", "while", "assert", "del", "global", "not", "with", "async", "elif", "if",
@@ -9,20 +9,20 @@ pub const PYTHON_KEYWORDS: &'static [&'static str] = &[
 ];
 
 // Reference: https://docs.python.org/3/reference/lexical_analysis.html#soft-keywords
-pub const PYTHON_SOFT_KEYWORDS: &'static [&'static str] = &["match", "case", "_"];
+pub const PYTHON_SOFT_KEYWORDS: &[&str] = &["match", "case", "_"];
 
 // Mix between Python operators and delimiters.
 //
 // Reference: https://docs.python.org/3/reference/lexical_analysis.html#operators
 // Reference: https://docs.python.org/3/reference/lexical_analysis.html#delimiters
-pub const PYTHON_OPERATORS: &'static [&'static str] = &[
+pub const PYTHON_OPERATORS: &[&str] = &[
     "+", "-", "*", "**", "/", "//", "%", "@", "<<", ">>", "&", "|", "^", "~", ":=", "<", ">", "<=",
     ">=", "==", "!=", ",", ":", ".", ";", /*"@",*/ "=", "->", "+=", "-=", "*=", "/=", "//=",
     "%=", "@=", "&=", "|=", "^=", ">>=", "<<=", "**=",
 ];
 
 // Reference: https://docs.python.org/3/reference/lexical_analysis.html#delimiters
-pub const PYTHON_DELIMITERS: &'static [&'static str] = &["(", ")", "[", "]", "{", "}"];
+pub const PYTHON_DELIMITERS: &[&str] = &["(", ")", "[", "]", "{", "}"];
 
 /// [`Scanner`] extension for scanning Python tokens.
 ///

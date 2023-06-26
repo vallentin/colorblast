@@ -57,9 +57,7 @@ impl ScanToken for CToken {
         }
 
         if let Ok((r, ident)) = scanner.scan_c_identifier() {
-            let tok = if KEYWORDS.contains(&ident) {
-                Self::Keyword
-            } else if KEYWORDS_MS.contains(&ident) {
+            let tok = if KEYWORDS.contains(&ident) || KEYWORDS_MS.contains(&ident) {
                 Self::Keyword
             } else {
                 Self::Ident

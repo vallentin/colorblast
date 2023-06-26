@@ -61,25 +61,22 @@ impl ScanToken for RustToken {
             return Some((tok, scanner.span(r)));
         }
 
-        match scanner.peek() {
-            Ok((_r, '\'')) => {
-                if let Ok((r, _s)) = scanner.scan_rust_char() {
-                    return Some((Self::Char, scanner.span(r)));
-                }
-
-                let res = scanner.scan_with(|scanner| {
-                    scanner.accept_char('\'')?;
-                    scanner.scan_rust_identifier()?;
-                    Ok(())
-                });
-                if let Ok((r, _s)) = res {
-                    return Some((Self::Lifetime, scanner.span(r)));
-                }
-
-                let (r, _c) = scanner.next().ok()?;
-                return Some((Self::Unknown, scanner.span(r)));
+        if let Ok((_r, '\'')) = scanner.peek() {
+            if let Ok((r, _s)) = scanner.scan_rust_char() {
+                return Some((Self::Char, scanner.span(r)));
             }
-            _ => {}
+
+            let res = scanner.scan_with(|scanner| {
+                scanner.accept_char('\'')?;
+                scanner.scan_rust_identifier()?;
+                Ok(())
+            });
+            if let Ok((r, _s)) = res {
+                return Some((Self::Lifetime, scanner.span(r)));
+            }
+
+            let (r, _c) = scanner.next().ok()?;
+            return Some((Self::Unknown, scanner.span(r)));
         }
 
         if let Ok((r, _s)) = scanner

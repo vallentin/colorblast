@@ -719,14 +719,12 @@ impl<'text> RustScannerExt<'text> for Scanner<'text> {
             scanner.scan_rust_int_dec()?;
             scanner.accept_char('.')?;
 
-            if scanner.scan_rust_int_dec().is_ok() {
-                if scanner.accept_char_any(&['e', 'E']).is_ok() {
-                    _ = scanner.accept_char_any(&['+', '-']);
+            if scanner.scan_rust_int_dec().is_ok() && scanner.accept_char_any(&['e', 'E']).is_ok() {
+                _ = scanner.accept_char_any(&['+', '-']);
 
-                    scanner.skip_while_char('_');
-                    scanner.accept_if_ext(char::is_ascii_digit)?;
-                    scanner.skip_while(|c| c.is_ascii_digit() || (c == '_'));
-                }
+                scanner.skip_while_char('_');
+                scanner.accept_if_ext(char::is_ascii_digit)?;
+                scanner.skip_while(|c| c.is_ascii_digit() || (c == '_'));
             }
 
             Ok(())

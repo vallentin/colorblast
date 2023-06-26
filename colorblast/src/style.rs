@@ -4,6 +4,7 @@ pub mod prelude {
 
 use std::mem;
 
+#[allow(clippy::wrong_self_convention)]
 pub trait AsStyle {
     fn as_style(self) -> Option<Style>;
 }
