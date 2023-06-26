@@ -1,1 +1,5 @@
 # colorblast (and friends)
+
+[![colorblast](https://github.com/vallentin/colorblast/actions/workflows/ci-colorblast.yml/badge.svg)](https://github.com/vallentin/colorblast/actions/workflows/ci-colorblast.yml)
+[![text-scanner](https://github.com/vallentin/colorblast/actions/workflows/ci-text-scanner.yml/badge.svg)](https://github.com/vallentin/colorblast/actions/workflows/ci-text-scanner.yml)
+[![any-lexer](https://github.com/vallentin/colorblast/actions/workflows/ci-any-lexer.yml/badge.svg)](https://github.com/vallentin/colorblast/actions/workflows/ci-any-lexer.yml)
