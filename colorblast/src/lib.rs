@@ -4,9 +4,12 @@
 pub mod lexers;
 
 pub mod prelude {
+    pub use super::lexers::prelude::*;
     pub use super::style::prelude::*;
+    pub use super::token::prelude::*;
 
     pub use super::html::{render_html, render_html_into};
+    pub use super::{print_code, println_code};
     pub use super::{print_styled_tokens, println_styled_tokens};
     pub use super::{print_stylized_tokens, println_stylized_tokens};
 }
@@ -15,16 +18,32 @@ mod ansi;
 mod html;
 mod style;
 mod stylize;
+mod token;
 
 pub use crate::html::{render_html, render_html_into};
+pub use crate::lexers::Lexer;
 pub use crate::style::*;
 pub use crate::stylize::StylizeToken;
+pub use crate::token::*;
 
 use std::fmt;
 
 use any_lexer::TokenSpan;
 
 use crate::ansi::{AnsiCode, AnsiColor, AnsiStyle};
+
+#[inline]
+pub fn print_code(lexer: Lexer, code: impl AsRef<str>) {
+    let code = code.as_ref();
+    let tokens = lexer.into_lexer(code);
+    print_stylized_tokens(tokens);
+}
+
+#[inline]
+pub fn println_code(lexer: Lexer, code: impl AsRef<str>) {
+    print_code(lexer, code);
+    println!();
+}
 
 /// Stylizes all `tokens` and prints them to the standard output.
 #[inline]
