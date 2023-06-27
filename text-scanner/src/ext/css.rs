@@ -230,7 +230,8 @@ impl<'text> CssScannerExt<'text> for Scanner<'text> {
     fn scan_css_hash(&mut self) -> ScannerResult<'text, &'text str> {
         self.scan_with(|scanner| {
             scanner.accept_char('#')?;
-            scanner.scan_css_identifier()?;
+            scanner.accept_if(|c| c.is_alphanumeric() || matches!(c, '_' | '-'))?;
+            scanner.skip_while(|c| c.is_alphanumeric() || matches!(c, '_' | '-'));
             Ok(())
         })
     }
