@@ -9,25 +9,25 @@ use super::{impl_iter, Token, TokenSpan};
 ///
 /// # Warning
 ///
-/// If you are about to use [`RustLexer`] for anything outside the scope of the
+/// If you are about to use `RustLexer` for anything outside the scope of the
 /// [`colorblast` crate], then please see the warning in the [`lexers` module].
 ///
 /// [`colorblast` crate]: crate
 /// [`lexers` module]: super#warning
 #[derive(Clone, Debug)]
-pub struct RustLexer<'text> {
-    lexer: any_lexer::RustLexer<'text>,
+pub struct RustLexer<'code> {
+    lexer: any_lexer::RustLexer<'code>,
 }
 
-impl<'text> RustLexer<'text> {
+impl<'code> RustLexer<'code> {
     #[inline]
-    pub fn new(code: &'text str) -> Self {
+    pub fn new(code: &'code str) -> Self {
         Self {
             lexer: any_lexer::RustLexer::new(code),
         }
     }
 
-    fn next_token(&mut self) -> Option<(Token, TokenSpan<'text>)> {
+    fn next_token(&mut self) -> Option<(Token, TokenSpan<'code>)> {
         use any_lexer::RustToken;
         let (tok, span) = self.lexer.next()?;
         let tok = match tok {
@@ -46,4 +46,4 @@ impl<'text> RustLexer<'text> {
     }
 }
 
-impl_iter!('text, RustLexer<'text>);
+impl_iter!('code, RustLexer<'code>);
