@@ -244,6 +244,8 @@ impl<'text> Scanner<'text> {
     /// Returns the next [`char`] and its [`Range`], if any,
     /// without advancing the cursor position.
     ///
+    /// See also [`peek_str()`], [`peek_nth()`], and [`peek_iter()`].
+    ///
     /// # Example
     ///
     /// ```rust
@@ -260,6 +262,10 @@ impl<'text> Scanner<'text> {
     ///
     /// assert_eq!(scanner.remaining_text(), "ello World");
     /// ```
+    ///
+    /// [`peek_str()`]: Self::peek_str
+    /// [`peek_nth()`]: Self::peek_nth
+    /// [`peek_iter()`]: Self::peek_iter
     #[inline]
     pub fn peek(&self) -> ScannerResult<'text, char> {
         match self.peek_iter().next() {
@@ -271,6 +277,8 @@ impl<'text> Scanner<'text> {
 
     /// Returns the `n`th [`char`] and its [`Range`], if any,
     /// without advancing the cursor position.
+    ///
+    /// See also [`peek_str()`] and [`peek_iter()`].
     ///
     /// # Example
     ///
@@ -288,6 +296,9 @@ impl<'text> Scanner<'text> {
     ///
     /// assert_eq!(scanner.remaining_text(), "ello World");
     /// ```
+    ///
+    /// [`peek_str()`]: Self::peek_str
+    /// [`peek_iter()`]: Self::peek_iter
     #[inline]
     pub fn peek_nth(&self, n: usize) -> ScannerResult<'text, char> {
         match self.peek_iter().nth(n) {
@@ -301,6 +312,8 @@ impl<'text> Scanner<'text> {
     ///
     /// **Note:** This has the same lifetime as the original `text`,
     /// so the scanner can continue to be used while this exists.
+    ///
+    /// See also [`peek_str()`].
     ///
     /// # Example
     ///
@@ -321,9 +334,134 @@ impl<'text> Scanner<'text> {
     /// assert_eq!(scanner.next(), Ok((2..3, 'l')));
     /// assert_eq!(scanner.remaining_text(), "lo World");
     /// ```
+    ///
+    /// [`peek_str()`]: Self::peek_str
     #[inline]
     pub fn peek_iter(&self) -> CharRangesOffset<'text> {
         self.remaining_text().char_ranges().offset(self.cursor)
+    }
+
+    /// Advances the scanner cursor and returns [`Ok`] with a string
+    /// slice of the following `n` characters. If less than `n` are
+    /// remaining, then [`Err`] is returned, with the [remaining text],
+    /// if any, without advancing the cursor.
+    ///
+    /// **Note:** The returned string slice has the same lifetime as
+    /// the original `text`, so the scanner can continue to be used
+    /// while this exists.
+    ///
+    /// # Bytes vs Characters
+    ///
+    /// The [`Ok`] string slice contains `n` characters,
+    /// i.e. where `n` matches <code>str.[chars()].[count()]</code>
+    /// and **not** [`len()`] (which is the byte length of a string slice).
+    ///
+    /// Consider `"foo"` vs `"🦀🦀🦀"`, both string slices contain 3
+    /// characters. However `"foo"` has a length of 3 bytes, while `"🦀🦀🦀"`
+    /// has a length of 12 bytes, when encoded in UTF-8.
+    ///
+    /// # Panics
+    ///
+    /// Panics in non-optimized builds, if `n` is `0`.
+    ///
+    /// In optimized builds <code>Err(([cursor]..[cursor], &quot;&quot;))</code>
+    /// is returned instead, regardless of whether there is any remaining
+    /// characters.
+    ///
+    /// In short there is a <code>[debug_assert_ne!](n, 0)</code>.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # use text_scanner::Scanner;
+    /// let mut scanner = Scanner::new("Foo Bar Baz");
+    ///
+    /// # assert_eq!(scanner.remaining_text(), "Foo Bar Baz");
+    /// assert_eq!(scanner.next_str(3), Ok((0..3, "Foo")));
+    /// assert_eq!(scanner.next_str(3), Ok((3..6, " Ba")));
+    /// assert_eq!(scanner.next_str(3), Ok((6..9, "r B")));
+    /// // Less than 3 characters are remaining, so `Err`
+    /// // is returned
+    /// assert_eq!(scanner.next_str(3), Err((9..11, "az")));
+    /// # assert_eq!(scanner.remaining_text(), "az");
+    /// # assert_eq!(scanner.next_str(2), Ok((9..11, "az")));
+    /// # assert_eq!(scanner.remaining_text(), "");
+    /// ```
+    ///
+    /// [remaining text]: Self::remaining_text
+    /// [chars()]: str::chars
+    /// [count()]: Iterator::count()
+    /// [`len()`]: str::len
+    /// [cursor]: Self::cursor_pos()
+    #[inline]
+    pub fn next_str(&mut self, chars: usize) -> ScannerResult<'text, &'text str> {
+        let (r, s) = self.peek_str(chars)?;
+        self.cursor = r.end;
+        Ok((r, s))
+    }
+
+    /// Returns [`Ok`] with a string slice of the following `n` characters,
+    /// if any, without advancing the cursor. If less than `n` are remaining,
+    /// then [`Err`] is returned, with the [remaining text].
+    ///
+    /// **Note:** The returned string slice has the same lifetime as
+    /// the original `text`, so the scanner can continue to be used
+    /// while this exists.
+    ///
+    /// # Bytes vs Characters
+    ///
+    /// The [`Ok`] string slice contains `n` characters,
+    /// i.e. where `n` matches <code>str.[chars()].[count()]</code>
+    /// and **not** [`len()`] (which is the byte length of a string slice).
+    ///
+    /// Consider `"foo"` vs `"🦀🦀🦀"`, both string slices contain 3
+    /// characters. However `"foo"` has a length of 3 bytes, while `"🦀🦀🦀"`
+    /// has a length of 12 bytes, when encoded in UTF-8.
+    ///
+    /// # Panics
+    ///
+    /// Panics in non-optimized builds, if `n` is `0`.
+    ///
+    /// In optimized builds <code>Err(([cursor]..[cursor], &quot;&quot;))</code>
+    /// is returned instead, regardless of whether there is any remaining
+    /// characters.
+    ///
+    /// In short there is a <code>[debug_assert_ne!](n, 0)</code>.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # use text_scanner::Scanner;
+    /// let mut scanner = Scanner::new("Hello 👋 World 🌏");
+    ///
+    /// assert_eq!(scanner.remaining_text(), "Hello 👋 World 🌏");
+    /// // The emoji is a multi-byte character, thereby the returned
+    /// // range has a length of 10 and not 7.
+    /// assert_eq!(scanner.peek_str(7), Ok((0..10, "Hello 👋")));
+    /// # assert_eq!(scanner.remaining_text(), "Hello 👋 World 🌏");
+    ///
+    /// assert_eq!(scanner.next(), Ok((0..1, 'H')));
+    /// assert_eq!(scanner.next(), Ok((1..2, 'e')));
+    ///
+    /// assert_eq!(scanner.remaining_text(), "llo 👋 World 🌏");
+    /// assert_eq!(scanner.peek_str(7), Ok((2..12, "llo 👋 W")));
+    /// # assert_eq!(scanner.remaining_text(), "llo 👋 World 🌏");
+    /// ```
+    ///
+    /// [remaining text]: Self::remaining_text
+    /// [chars()]: str::chars
+    /// [count()]: Iterator::count()
+    /// [`len()`]: str::len
+    /// [cursor]: Self::cursor_pos()
+    #[inline]
+    pub fn peek_str(&self, n: usize) -> ScannerResult<'text, &'text str> {
+        debug_assert_ne!(n, 0, "`n` must be greater than 0");
+        if n == 0 {
+            return Err((self.cursor..self.cursor, ""));
+        }
+        let (last, _) = self.peek_nth(n - 1)?;
+        let r = self.cursor..last.end;
+        Ok(self.ranged_text(r))
     }
 
     /// Advances the scanner cursor and returns the next
