@@ -7,6 +7,7 @@ on:
     paths:
     - ".github/workflows/ci-any-lexer.yml"
     - "any-lexer/**"
+    - "text-scanner/**"
     - "Cargo.toml"
   pull_request:
     paths:
