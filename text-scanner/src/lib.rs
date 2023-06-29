@@ -30,6 +30,48 @@ pub type ScannerResult<'text, T> = Result<ScannerItem<T>, ScannerItem<&'text str
 
 pub type ScanResult<'text> = Result<(), ScannerItem<&'text str>>;
 
+#[cfg(test)]
+macro_rules! assert_valid_cases {
+    ($method:ident, $cases:expr) => {
+        $crate::assert_valid_cases!($method, $cases, "");
+    };
+
+    ($method:ident, $cases:expr, $remaining:expr) => {
+        let remaining = $remaining;
+        for expected in $cases {
+            let text = match remaining.is_empty() {
+                true => std::borrow::Cow::Borrowed(expected),
+                false => std::borrow::Cow::Owned(format!("{expected}{remaining}")),
+            };
+            let text = text.as_ref();
+
+            let mut scanner = Scanner::new(text);
+            let actual = scanner.$method();
+
+            assert_eq!(actual, Ok((0..expected.len(), expected)));
+            assert_eq!(scanner.remaining_text(), remaining);
+        }
+    };
+}
+
+#[cfg(test)]
+macro_rules! assert_invalid_cases {
+    ($method:ident, $cases:expr) => {
+        for case in $cases {
+            let mut scanner = Scanner::new(case);
+            let actual = scanner.$method();
+            if actual.is_ok() {
+                panic!("expected `Err`, received {:?}", actual);
+            }
+        }
+    };
+}
+
+#[cfg(test)]
+pub(crate) use assert_invalid_cases;
+#[cfg(test)]
+pub(crate) use assert_valid_cases;
+
 /// A `Scanner` is a UTF-8 [`char`] text scanner, implementing various methods
 /// for scanning a string slice, as well as backtracking capabilities, which
 /// can be used to implement lexers for tokenizing text or code. It is essentially
@@ -1170,6 +1212,231 @@ impl<'text> Scanner<'text> {
         let mut scanner = self.clone();
         f(&mut scanner)
     }
+
+    /// This function accepts the following formats:
+    ///
+    /// - `0`
+    /// - `1`
+    /// - `5`
+    /// - `123`
+    /// - `00000`
+    ///
+    /// The following is **not** accepted by this function:
+    ///
+    /// - `0__000__0`
+    /// - `_`
+    /// - `___`
+    /// - `_123`
+    ///
+    /// See also:
+    /// - [`scan_digits_or_underscores()`]
+    /// - [`scan_non_zero_digits()`]
+    /// - [`scan_non_zero_digits_or_underscores()`]
+    /// - [`scan_rust_int_dec()`]
+    /// - [`scan_c_int_dec()`]
+    /// - [`scan_python_int_dec()`]
+    /// - _and [more extensions]_
+    ///
+    /// # Grammar
+    ///
+    /// The following [EBNF] grammar represents what this method accepts:
+    ///
+    /// ```text
+    /// Digits ::= Digit Digit*
+    /// Digit  ::= [0-9]
+    /// ```
+    ///
+    /// [`scan_digits_or_underscores()`]: Self::scan_digits_or_underscores
+    /// [`scan_non_zero_digits()`]: Self::scan_non_zero_digits
+    /// [`scan_non_zero_digits_or_underscores()`]: Self::scan_non_zero_digits_or_underscores
+    /// [`scan_rust_int_dec()`]: ext::RustScannerExt::scan_rust_int_dec
+    /// [`scan_c_int_dec()`]: ext::CScannerExt::scan_c_int_dec
+    /// [`scan_python_int_dec()`]: ext::PythonScannerExt::scan_python_int_dec
+    /// [more extensions]: ext
+    /// [EBNF]: https://www.w3.org/TR/REC-xml/#sec-notation
+    pub fn scan_digits(&mut self) -> ScannerResult<'text, &'text str> {
+        let (first, _c) = self.accept_if_ext(char::is_ascii_digit)?;
+        let (last, _s) = self.skip_while_ext(char::is_ascii_digit);
+        Ok(self.ranged_text(first.start..last.end))
+    }
+
+    /// This function accepts the following formats:
+    ///
+    /// - `0`
+    /// - `1`
+    /// - `5_`
+    /// - `0000`
+    /// - `12345`
+    /// - `1_2_3`
+    /// - `0__000__0`
+    ///
+    /// The following is **not** accepted by this function:
+    ///
+    /// - `_`
+    /// - `___`
+    /// - `_123`
+    ///
+    /// See also:
+    /// - [`scan_digits()`]
+    /// - [`scan_non_zero_digits()`]
+    /// - [`scan_non_zero_digits_or_underscores()`]
+    /// - [`scan_rust_int_dec()`]
+    /// - [`scan_c_int_dec()`]
+    /// - [`scan_python_int_dec()`]
+    /// - _and [more extensions]_
+    ///
+    /// # Grammar
+    ///
+    /// The following [EBNF] grammar represents what this method accepts:
+    ///
+    /// ```text
+    /// Digits ::= Digit ( Digit | '_' )*
+    /// Digit  ::= [0-9]
+    /// ```
+    ///
+    /// [`scan_digits()`]: Self::scan_digits
+    /// [`scan_non_zero_digits()`]: Self::scan_non_zero_digits
+    /// [`scan_non_zero_digits_or_underscores()`]: Self::scan_non_zero_digits_or_underscores
+    /// [`scan_rust_int_dec()`]: ext::RustScannerExt::scan_rust_int_dec
+    /// [`scan_c_int_dec()`]: ext::CScannerExt::scan_c_int_dec
+    /// [`scan_python_int_dec()`]: ext::PythonScannerExt::scan_python_int_dec
+    /// [more extensions]: ext
+    /// [EBNF]: https://www.w3.org/TR/REC-xml/#sec-notation
+    pub fn scan_digits_or_underscores(&mut self) -> ScannerResult<'text, &'text str> {
+        let (first, _c) = self.accept_if_ext(char::is_ascii_digit)?;
+        let (last, _s) = self.skip_while(|c| c.is_ascii_digit() || (c == '_'));
+        Ok(self.ranged_text(first.start..last.end))
+    }
+
+    /// This function accepts the following formats:
+    ///
+    /// - `0`
+    /// - `1`
+    /// - `5`
+    /// - `123`
+    /// - `102030`
+    ///
+    /// The following is **not** accepted by this function:
+    ///
+    /// - `0000`
+    /// - `01`
+    /// - `012345`
+    /// - `0__000__0`
+    /// - `_`
+    /// - `___`
+    /// - `_123`
+    ///
+    /// See also:
+    /// - [`scan_digits()`]
+    /// - [`scan_digits_or_underscores()`]
+    /// - [`scan_non_zero_digits_or_underscores()`]
+    /// - [`scan_rust_int_dec()`]
+    /// - [`scan_c_int_dec()`]
+    /// - [`scan_python_int_dec()`]
+    /// - _and [more extensions]_
+    ///
+    /// # Grammar
+    ///
+    /// The following [EBNF] grammar represents what this method accepts:
+    ///
+    /// ```text
+    /// Digits       ::= ( '0' |
+    ///                    NonZeroDigit Digit* )
+    /// NonZeroDigit ::= [1-9]
+    /// Digit        ::= [0-9]
+    /// ```
+    ///
+    /// [`scan_digits()`]: Self::scan_digits
+    /// [`scan_digits_or_underscores()`]: Self::scan_digits_or_underscores
+    /// [`scan_non_zero_digits_or_underscores()`]: Self::scan_non_zero_digits_or_underscores
+    /// [`scan_rust_int_dec()`]: ext::RustScannerExt::scan_rust_int_dec
+    /// [`scan_c_int_dec()`]: ext::CScannerExt::scan_c_int_dec
+    /// [`scan_python_int_dec()`]: ext::PythonScannerExt::scan_python_int_dec
+    /// [more extensions]: ext
+    /// [EBNF]: https://www.w3.org/TR/REC-xml/#sec-notation
+    pub fn scan_non_zero_digits(&mut self) -> ScannerResult<'text, &'text str> {
+        self.scan_with(|scanner| {
+            match scanner.accept_char('0') {
+                Ok((r, _)) => {
+                    if scanner.accept_if_ext(char::is_ascii_digit).is_ok() {
+                        return Err(scanner.ranged_text(r));
+                    }
+                }
+                _ => {
+                    scanner.accept_if(char::is_ascii_non_zero_digit)?;
+                    scanner.skip_while_ext(char::is_ascii_digit);
+                }
+            }
+            Ok(())
+        })
+    }
+
+    /// This function accepts the following formats:
+    ///
+    /// - `0`
+    /// - `1`
+    /// - `5_`
+    /// - `123`
+    /// - `102030`
+    /// - `1_2_3`
+    /// - `0___`
+    /// - `12345__`
+    ///
+    /// The following is **not** accepted by this function:
+    ///
+    /// - `0000`
+    /// - `01`
+    /// - `012345`
+    /// - `0__000__0`
+    /// - `_`
+    /// - `___`
+    /// - `_123`
+    ///
+    /// See also:
+    /// - [`scan_digits()`]
+    /// - [`scan_digits_or_underscores()`]
+    /// - [`scan_non_zero_digits()`]
+    /// - [`scan_rust_int_dec()`]
+    /// - [`scan_c_int_dec()`]
+    /// - [`scan_python_int_dec()`]
+    /// - _and [more extensions]_
+    ///
+    /// # Grammar
+    ///
+    /// The following [EBNF] grammar represents what this method accepts:
+    ///
+    /// ```text
+    /// Digits       ::= ( '0' |
+    ///                    NonZeroDigit ( Digit | '_' )* )
+    /// NonZeroDigit ::= [1-9]
+    /// Digit        ::= [0-9]
+    /// ```
+    ///
+    /// [`scan_digits()`]: Self::scan_digits
+    /// [`scan_digits_or_underscores()`]: Self::scan_digits_or_underscores
+    /// [`scan_non_zero_digits()`]: Self::scan_non_zero_digits
+    /// [`scan_rust_int_dec()`]: ext::RustScannerExt::scan_rust_int_dec
+    /// [`scan_c_int_dec()`]: ext::CScannerExt::scan_c_int_dec
+    /// [`scan_python_int_dec()`]: ext::PythonScannerExt::scan_python_int_dec
+    /// [more extensions]: ext
+    /// [EBNF]: https://www.w3.org/TR/REC-xml/#sec-notation
+    pub fn scan_non_zero_digits_or_underscores(&mut self) -> ScannerResult<'text, &'text str> {
+        self.scan_with(|scanner| {
+            match scanner.accept_char('0') {
+                Ok((first, _)) => {
+                    let (last, _) = scanner.skip_while_char('_');
+                    if scanner.accept_if_ext(char::is_ascii_digit).is_ok() {
+                        return Err(scanner.ranged_text(first.start..last.end));
+                    }
+                }
+                _ => {
+                    scanner.accept_if(char::is_ascii_non_zero_digit)?;
+                    scanner.skip_while(|c| c.is_ascii_digit() || (c == '_'));
+                }
+            }
+            Ok(())
+        })
+    }
 }
 
 // Currently not publicly exported, as using e.g. `accept_if()` with a
@@ -1226,6 +1493,8 @@ where
 
 #[allow(clippy::wrong_self_convention)]
 pub(crate) trait CharExt {
+    fn is_ascii_non_zero_digit(self) -> bool;
+
     // `std::char::is_ascii_octdigit` is unstable
     fn is_ascii_octdigit(self) -> bool;
 
@@ -1233,6 +1502,11 @@ pub(crate) trait CharExt {
 }
 
 impl CharExt for char {
+    #[inline]
+    fn is_ascii_non_zero_digit(self) -> bool {
+        matches!(self, '1'..='9')
+    }
+
     #[inline]
     fn is_ascii_octdigit(self) -> bool {
         matches!(self, '0'..='7')
@@ -1264,5 +1538,79 @@ mod tests {
         #[rustfmt::skip]
         assert_eq!(scanner.accept_str_any(&["FooBar", "Foo"]), Ok((0..6, "FooBar")));
         assert_eq!(scanner.remaining_text(), "Baz");
+    }
+
+    #[test]
+    fn test_scan_digits() {
+        let cases = ["0", "1", "0000", "0123", "123", "123456789", "0123456789"];
+        assert_valid_cases!(scan_digits, cases);
+        assert_valid_cases!(scan_digits, cases, "remaining");
+    }
+
+    #[test]
+    fn test_scan_digits_invalid() {
+        let cases = ["_", "___", "_123"];
+        assert_invalid_cases!(scan_digits, cases);
+    }
+
+    #[test]
+    fn test_scan_digits_or_underscores() {
+        let cases = [
+            "0",
+            "1",
+            "5_",
+            "0000",
+            "0123",
+            "123",
+            "1_2_3",
+            "123456789",
+            "0123456789",
+            "0__000__0",
+        ];
+        assert_valid_cases!(scan_digits_or_underscores, cases);
+        assert_valid_cases!(scan_digits_or_underscores, cases, "remaining");
+    }
+
+    #[test]
+    fn test_scan_digits_or_underscores_invalid() {
+        let cases = ["_", "___", "_123"];
+        assert_invalid_cases!(scan_digits_or_underscores, cases);
+    }
+
+    #[test]
+    fn test_scan_non_zero_digits() {
+        let cases = ["0", "1", "5", "123", "102030"];
+        assert_valid_cases!(scan_non_zero_digits, cases);
+        assert_valid_cases!(scan_non_zero_digits, cases, "remaining");
+    }
+
+    #[test]
+    fn test_scan_non_zero_digits_invalid() {
+        let cases = ["0000", "01", "012345", "_", "___", "_123"];
+        assert_invalid_cases!(scan_non_zero_digits, cases);
+    }
+
+    #[test]
+    fn test_scan_non_zero_digits_or_underscores() {
+        let cases = ["0", "1", "5_", "123", "102030", "1_2_3", "0___", "12345__"];
+        assert_valid_cases!(scan_non_zero_digits_or_underscores, cases);
+        assert_valid_cases!(scan_non_zero_digits_or_underscores, cases, "remaining");
+    }
+
+    #[test]
+    fn test_scan_non_zero_digits_or_underscores_invalid() {
+        let cases = [
+            "00",
+            "0000",
+            "01",
+            "012345",
+            "0_0",
+            "0__000__0",
+            "_",
+            "___",
+            "_123",
+            "_0123",
+        ];
+        assert_invalid_cases!(scan_non_zero_digits_or_underscores, cases);
     }
 }
