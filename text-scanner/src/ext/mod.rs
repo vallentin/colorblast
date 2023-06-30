@@ -13,6 +13,7 @@
 
 mod c;
 mod css;
+mod java;
 mod json;
 mod jsonc;
 mod python;
@@ -21,6 +22,7 @@ mod scss;
 
 pub use self::c::*;
 pub use self::css::*;
+pub use self::java::*;
 pub use self::json::*;
 pub use self::jsonc::*;
 pub use self::python::*;
