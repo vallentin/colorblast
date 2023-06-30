@@ -4,6 +4,7 @@ on:
   push:
     branches:
     - master
+    - ci
     paths:
     - ".github/workflows/ci-text-scanner.yml"
     - "text-scanner/**"
@@ -114,3 +115,21 @@ jobs:
       with:
         command: clippy
         args: -p text-scanner -- -D warnings
+
+  doc:
+    name: Rustdoc
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    timeout-minutes: 45
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: nightly
+        override: true
+    - uses: actions-rs/cargo@v1
+      with:
+        command: rustdoc
+        args: -p text-scanner -- -Z unstable-options --check --deny rustdoc::all

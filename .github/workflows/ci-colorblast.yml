@@ -4,6 +4,7 @@ on:
   push:
     branches:
     - master
+    - ci
     paths:
     - ".github/workflows/ci-colorblast.yml"
     - "colorblast/**"
@@ -116,3 +117,21 @@ jobs:
       with:
         command: clippy
         args: -p colorblast -- -D warnings
+
+  doc:
+    name: Rustdoc
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    timeout-minutes: 45
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: nightly
+        override: true
+    - uses: actions-rs/cargo@v1
+      with:
+        command: rustdoc
+        args: -p colorblast -- -Z unstable-options --check --deny rustdoc::all
