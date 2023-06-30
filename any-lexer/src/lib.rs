@@ -1,3 +1,6 @@
+//! Collection of lexer implementations, capable of tokenizing various
+//! programming languages, markup languages, and various other formats.
+
 #![forbid(unsafe_code)]
 #![forbid(elided_lifetimes_in_paths)]
 

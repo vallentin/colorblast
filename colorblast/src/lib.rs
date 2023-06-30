@@ -1,3 +1,5 @@
+//! Render syntax highlighted code into HTML or ANSI codes for the terminal.
+
 #![forbid(unsafe_code)]
 #![forbid(elided_lifetimes_in_paths)]
 
