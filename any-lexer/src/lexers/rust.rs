@@ -49,6 +49,13 @@ impl ScanToken for RustToken {
             return Some((Self::BlockComment, scanner.span(r)));
         }
 
+        if let Ok((r, _s)) = scanner
+            .scan_rust_raw_string()
+            .or_else(|_| scanner.scan_rust_string())
+        {
+            return Some((Self::String, scanner.span(r)));
+        }
+
         if let Ok((r, ident)) = scanner
             .scan_rust_raw_identifier()
             .or_else(|_| scanner.scan_rust_identifier())
@@ -77,13 +84,6 @@ impl ScanToken for RustToken {
 
             let (r, _c) = scanner.next().ok()?;
             return Some((Self::Unknown, scanner.span(r)));
-        }
-
-        if let Ok((r, _s)) = scanner
-            .scan_rust_raw_string()
-            .or_else(|_| scanner.scan_rust_string())
-        {
-            return Some((Self::String, scanner.span(r)));
         }
 
         if let Ok((r, _s)) = scanner.scan_rust_float() {
