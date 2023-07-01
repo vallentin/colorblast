@@ -21,7 +21,7 @@ pub use self::json::*;
 pub use self::jsonc::*;
 pub use self::rust::*;
 
-use crate::{Token, TokenSpan};
+use crate::{IntoSimpleToken, SimpleTokenIter, Token, TokenSpan};
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 #[non_exhaustive]

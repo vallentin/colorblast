@@ -6,6 +6,8 @@ pub mod prelude {
 
 pub use any_lexer::TokenSpan;
 
+use std::iter::FusedIterator;
+
 use crate::style::Style;
 use crate::stylize::StylizeToken;
 
@@ -106,5 +108,119 @@ impl StylizeToken for Token {
             // #[cfg(debug_assertions)]
             Self::Invalid => Style::new().fg((255, 0, 0)).bg((68, 17, 17)),
         }
+    }
+}
+
+pub(crate) trait IntoSimpleToken {
+    fn into_simple_token(self) -> Token;
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct SimpleTokenIter<I> {
+    iter: I,
+}
+
+impl<'text, T, I> SimpleTokenIter<I>
+where
+    I: Iterator<Item = (T, TokenSpan<'text>)>,
+    T: IntoSimpleToken,
+{
+    #[inline]
+    pub fn new(iter: I) -> Self {
+        Self { iter }
+    }
+
+    #[inline]
+    pub fn next_simple_token(&mut self) -> Option<(Token, TokenSpan<'text>)> {
+        self.iter
+            .next()
+            .map(|(tok, span)| (tok.into_simple_token(), span))
+    }
+
+    /*
+    #[inline]
+    pub fn peek_simple_token(&self) -> Option<(Token, TokenSpan<'text>)>
+    where
+        I: Clone,
+    {
+        self.clone().next()
+    }
+    */
+
+    #[inline]
+    pub fn next_non_space_simple_token(&mut self) -> Option<(Token, TokenSpan<'text>)> {
+        while let Some((tok, span)) = self.next_simple_token() {
+            match tok {
+                Token::Space => {}
+                _ => return Some((tok, span)),
+            }
+        }
+        None
+    }
+
+    #[inline]
+    pub fn next_non_space_simple_token_if<F>(&mut self, f: F) -> Option<(Token, TokenSpan<'text>)>
+    where
+        I: Clone,
+        F: FnOnce((Token, &TokenSpan<'text>)) -> bool,
+    {
+        let mut tokens = self.clone();
+        let (tok, span) = tokens.next_non_space_simple_token()?;
+
+        if f((tok, &span)) {
+            self.iter = tokens.iter;
+            Some((tok, span))
+        } else {
+            None
+        }
+    }
+
+    #[inline]
+    pub fn peek_non_space_simple_token(&self) -> Option<(Token, TokenSpan<'text>)>
+    where
+        I: Clone,
+    {
+        self.clone().next_non_space_simple_token()
+    }
+
+    #[inline]
+    pub fn peek_non_space_simple_token_if<F>(&self, f: F) -> Option<(Token, TokenSpan<'text>)>
+    where
+        I: Clone,
+        F: FnOnce((Token, &TokenSpan<'text>)) -> bool,
+    {
+        self.peek_non_space_simple_token()
+            .filter(|(tok, span)| f((*tok, span)))
+    }
+}
+
+impl<'text, T, I> Iterator for SimpleTokenIter<I>
+where
+    I: Iterator<Item = (T, TokenSpan<'text>)>,
+    T: IntoSimpleToken,
+{
+    type Item = (Token, TokenSpan<'text>);
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        self.next_simple_token()
+    }
+}
+
+impl<'text, T, I> FusedIterator for SimpleTokenIter<I>
+where
+    I: Iterator<Item = (T, TokenSpan<'text>)>,
+    T: IntoSimpleToken,
+{
+}
+
+impl<'text, T, I> From<I> for SimpleTokenIter<I>
+where
+    I: Iterator<Item = (T, TokenSpan<'text>)>,
+    T: IntoSimpleToken,
+{
+    #[inline]
+    fn from(iter: I) -> Self {
+        Self::new(iter)
     }
 }

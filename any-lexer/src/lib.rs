@@ -56,6 +56,24 @@ impl<'text> TokenSpan<'text> {
     pub fn is_empty(&self) -> bool {
         self.range.is_empty()
     }
+
+    #[doc(hidden)]
+    #[inline]
+    pub fn join(&self, other: &Self) -> Option<Self> {
+        if self.text.as_ptr() == other.text.as_ptr() {
+            Some(self.join_unchecked(other))
+        } else {
+            None
+        }
+    }
+
+    #[doc(hidden)]
+    #[inline]
+    pub fn join_unchecked(&self, other: &Self) -> Self {
+        let start = self.range.start.min(other.range.start);
+        let end = self.range.end.max(other.range.end);
+        Self::new(self.text, start..end)
+    }
 }
 
 impl fmt::Debug for TokenSpan<'_> {
