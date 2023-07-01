@@ -23,33 +23,51 @@ pub use self::rust::*;
 
 use crate::{IntoSimpleToken, SimpleTokenIter, Token, TokenSpan};
 
-#[derive(PartialEq, Eq, Clone, Copy, Debug)]
-#[non_exhaustive]
-pub enum Lexer {
+macro_rules! impl_enum_lexer {
+    (
+        $(
+            $(#[$attr:meta])*
+            $name:ident => $lexer:ident,
+        )+
+    ) => {
+        #[derive(PartialEq, Eq, Clone, Copy, Debug)]
+        #[non_exhaustive]
+        pub enum Lexer {
+            $(
+                $(#[$attr])*
+                $name,
+            )+
+        }
+
+        impl Lexer {
+            pub const VARIANTS: &[Self] = &[
+                $(Self::$name,)+
+            ];
+
+            pub(crate) fn into_lexer<'text>(
+                self,
+                text: &'text str,
+            ) -> Box<dyn Iterator<Item = (Token, TokenSpan<'text>)> + 'text> {
+                match self {
+                    $(Self::$name => Box::new($lexer::new(text)),)+
+                }
+            }
+        }
+    };
+}
+
+impl_enum_lexer!(
     /// If the JSON might contain JavaScript-like comments, then
     /// use [`Lexer::JsonC`] instead, i.e. [JSON with Comments].
     ///
     /// [JSON with Comments]: https://code.visualstudio.com/docs/languages/json#_json-with-comments
-    Json,
+    Json => JsonLexer,
     /// [JSON with Comments].
     ///
     /// [JSON with Comments]: https://code.visualstudio.com/docs/languages/json#_json-with-comments
-    JsonC,
-    Rust,
-}
-
-impl Lexer {
-    pub(crate) fn into_lexer<'text>(
-        self,
-        text: &'text str,
-    ) -> Box<dyn Iterator<Item = (Token, TokenSpan<'text>)> + 'text> {
-        match self {
-            Self::Json => Box::new(JsonLexer::new(text)),
-            Self::JsonC => Box::new(JsonCLexer::new(text)),
-            Self::Rust => Box::new(RustLexer::new(text)),
-        }
-    }
-}
+    JsonC => JsonCLexer,
+    Rust => RustLexer,
+);
 
 macro_rules! impl_iter {
     ($lifetime:lifetime, $ty:ty) => {
