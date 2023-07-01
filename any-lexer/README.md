@@ -3,7 +3,7 @@
 [![any-lexer](https://github.com/vallentin/colorblast/actions/workflows/ci-any-lexer.yml/badge.svg)](https://github.com/vallentin/colorblast/actions/workflows/ci-any-lexer.yml)
 [![Latest Version](https://img.shields.io/crates/v/any-lexer.svg)](https://crates.io/crates/any-lexer)
 [![Docs](https://docs.rs/any-lexer/badge.svg)](https://docs.rs/any-lexer)
-[![License](https://img.shields.io/github/license/vallentin/any-lexer.svg)](https://github.com/vallentin/any-lexer)
+[![License](https://img.shields.io/github/license/vallentin/colorblast.svg)](https://github.com/vallentin/colorblast)
 
 **Warning:** This library is experimental and may change drastically in `0.0.*` versions.
 

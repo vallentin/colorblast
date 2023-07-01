@@ -3,7 +3,7 @@
 [![CI](https://github.com/vallentin/colorblast/actions/workflows/ci-text-scanner.yml/badge.svg)](https://github.com/vallentin/colorblast/actions/workflows/ci-text-scanner.yml)
 [![Latest Version](https://img.shields.io/crates/v/text-scanner.svg)](https://crates.io/crates/text-scanner)
 [![Docs](https://docs.rs/text-scanner/badge.svg)](https://docs.rs/text-scanner)
-[![License](https://img.shields.io/github/license/vallentin/text-scanner.svg)](https://github.com/vallentin/text-scanner)
+[![License](https://img.shields.io/github/license/vallentin/colorblast.svg)](https://github.com/vallentin/colorblast)
 
 **Warning:** This library is experimental and may change drastically in `0.0.*` versions.
 
