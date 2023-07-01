@@ -1,6 +1,6 @@
 [package]
 name = "any-lexer"
-version = "0.0.2"
+version = "0.0.3"
 edition = "2021"
 description = "Lexers for various programming languages and formats"
 keywords = ["lexer", "tokenization", "token", "streaming", "parsing"]
@@ -13,4 +13,4 @@ readme = "README.md"
 maintenance = { status = "actively-developed" }
 
 [dependencies]
-text-scanner = { path = "../text-scanner", version = "0.0.2" }
+text-scanner = { path = "../text-scanner", version = "0.0.3" }
