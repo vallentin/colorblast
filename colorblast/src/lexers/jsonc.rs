@@ -40,14 +40,14 @@ impl<'jsonc> JsonCLexer<'jsonc> {
                     .lexer
                     .peek_find_token(|tok| !matches!(tok, JsonCToken::Space));
                 match next_token {
-                    Some((JsonCToken::Punct, span)) if span.as_str() == ":" => Token::Ident,
+                    Some((JsonCToken::Punct, span)) if span.as_str() == ":" => Token::Var,
                     _ => Token::String,
                 }
             }
             JsonCToken::Number => Token::Number,
             JsonCToken::Null | JsonCToken::True | JsonCToken::False => Token::Keyword,
-            JsonCToken::Delim => Token::Delim,
-            JsonCToken::Punct => Token::Punct,
+            JsonCToken::Delim => Token::Delimiter,
+            JsonCToken::Punct => Token::Operator,
             JsonCToken::Unknown => Token::Invalid,
         };
         Some((tok, span))

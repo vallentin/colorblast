@@ -33,13 +33,13 @@ impl<'code> RustLexer<'code> {
         let tok = match tok {
             RustToken::Space => Token::Space,
             RustToken::LineComment | RustToken::BlockComment => Token::Comment,
-            RustToken::Ident => Token::Ident,
+            RustToken::Ident => Token::Var,
             RustToken::Keyword => Token::Keyword,
-            RustToken::Lifetime => Token::Ident,
+            RustToken::Lifetime => Token::Var4,
             RustToken::Char | RustToken::String | RustToken::RawString => Token::String,
             RustToken::Int | RustToken::Float => Token::Number,
-            RustToken::Delim => Token::Delim,
-            RustToken::Punct => Token::Punct,
+            RustToken::Delim => Token::Delimiter,
+            RustToken::Punct => Token::Operator,
             RustToken::Unknown => Token::Invalid,
         };
         Some((tok, span))

@@ -37,14 +37,14 @@ impl<'json> JsonLexer<'json> {
                     .lexer
                     .peek_find_token(|tok| !matches!(tok, JsonToken::Space));
                 match next_token {
-                    Some((JsonToken::Punct, span)) if span.as_str() == ":" => Token::Ident,
+                    Some((JsonToken::Punct, span)) if span.as_str() == ":" => Token::Var,
                     _ => Token::String,
                 }
             }
             JsonToken::Number => Token::Number,
             JsonToken::Null | JsonToken::True | JsonToken::False => Token::Keyword,
-            JsonToken::Delim => Token::Delim,
-            JsonToken::Punct => Token::Punct,
+            JsonToken::Delim => Token::Delimiter,
+            JsonToken::Punct => Token::Operator,
             JsonToken::Unknown => Token::Invalid,
         };
         Some((tok, span))
