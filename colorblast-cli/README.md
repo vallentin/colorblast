@@ -6,3 +6,7 @@
 [![License](https://img.shields.io/github/license/vallentin/colorblast-cli.svg)](https://github.com/vallentin/colorblast-cli)
 
 **Warning:** This CLI is experimental and may change drastically in `0.0.*` versions.
+
+ColorBlast is a syntax highlighting binary (and [library]), capable of rendering syntax highlighted code to the terminal, HTML, and images.
+
+[library]: https://crates.io/crates/colorblast

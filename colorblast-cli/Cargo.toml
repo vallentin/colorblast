@@ -2,13 +2,22 @@
 name = "colorblast-cli"
 version = "0.0.1"
 edition = "2021"
+description = "Syntax highlighting CLI for various programming languages, markup languages and various other formats"
+keywords = ["syntax", "highlighting", "highlighter", "tokenization", "parsing"]
+categories = ["parsing", "parser-implementations", "text-processing"]
+repository = "https://github.com/vallentin/colorblast"
+license = "Zlib"
+readme = "README.md"
+
+[badges]
+maintenance = { status = "experimental" }
 
 [[bin]]
 name = "colorblast"
 path = "src/main.rs"
 
 [dependencies]
-colorblast = { path = "../colorblast", version = "0.0.2" }
+colorblast = { path = "../colorblast", version = "0.0.3" }
 image = { version = "0.24", default-features = false, features = ["png"] }
 rusttype = "0.9"
 structopt = "0.3"
