@@ -1,6 +1,6 @@
 [package]
 name = "colorblast"
-version = "0.0.2"
+version = "0.0.3"
 edition = "2021"
 description = "Syntax highlighting library for various programming languages, markup languages and various other formats"
 keywords = ["syntax", "highlighting", "highlighter", "tokenization", "parsing"]

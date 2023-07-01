@@ -1,4 +1,4 @@
-# colorblast (and friends)
+# ColorBlast (and Friends)
 
 [![colorblast-cli](https://github.com/vallentin/colorblast/actions/workflows/ci-colorblast-cli.yml/badge.svg)](https://github.com/vallentin/colorblast/actions/workflows/ci-colorblast-cli.yml)
 [![colorblast](https://github.com/vallentin/colorblast/actions/workflows/ci-colorblast.yml/badge.svg)](https://github.com/vallentin/colorblast/actions/workflows/ci-colorblast.yml)

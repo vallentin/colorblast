@@ -1,4 +1,4 @@
-# colorblast
+# ColorBlast
 
 [![CI](https://github.com/vallentin/colorblast/actions/workflows/ci-colorblast.yml/badge.svg)](https://github.com/vallentin/colorblast/actions/workflows/ci-colorblast.yml)
 [![Latest Version](https://img.shields.io/crates/v/colorblast.svg)](https://crates.io/crates/colorblast)
