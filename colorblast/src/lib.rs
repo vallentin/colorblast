@@ -30,8 +30,6 @@ pub use crate::token::*;
 
 use std::fmt;
 
-use any_lexer::TokenSpan;
-
 use crate::ansi::{AnsiCode, AnsiColor, AnsiStyle};
 
 #[inline]
