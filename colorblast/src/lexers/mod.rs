@@ -44,7 +44,7 @@ macro_rules! impl_enum_lexer {
                 $(Self::$name,)+
             ];
 
-            pub(crate) fn into_lexer<'text>(
+            pub fn into_lexer<'text>(
                 self,
                 text: &'text str,
             ) -> Box<dyn Iterator<Item = (Token, TokenSpan<'text>)> + 'text> {

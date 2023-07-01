@@ -2,6 +2,6 @@
 members = [
     "any-lexer",
     "colorblast",
+    "colorblast-cli",
     "text-scanner",
 ]
-

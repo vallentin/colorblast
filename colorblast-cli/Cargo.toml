@@ -1,0 +1,14 @@
+[package]
+name = "colorblast-cli"
+version = "0.0.1"
+edition = "2021"
+
+[[bin]]
+name = "colorblast"
+path = "src/main.rs"
+
+[dependencies]
+colorblast = { path = "../colorblast", version = "0.0.2" }
+image = { version = "0.24", default-features = false, features = ["png"] }
+rusttype = "0.9"
+structopt = "0.3"
