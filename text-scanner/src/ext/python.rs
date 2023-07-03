@@ -164,15 +164,8 @@ impl<'text> PythonScannerExt<'text> for Scanner<'text> {
 
     // Reference: https://docs.python.org/3/reference/lexical_analysis.html#delimiters
     fn scan_python_delimiter(&mut self) -> ScannerResult<'text, &'text str> {
-        let (r, c) = self.peek()?;
-        let ret = self.ranged_text(r);
-        match c {
-            '(' | ')' | '[' | ']' | '{' | '}' => {
-                self.cursor = ret.0.end;
-                Ok(ret)
-            }
-            _ => Err(ret),
-        }
+        let (r, _c) = self.accept_char_any(&['(', ')', '[', ']', '{', '}'])?;
+        Ok(self.ranged_text(r))
     }
 
     // Reference: https://docs.python.org/3/reference/lexical_analysis.html#integer-literals

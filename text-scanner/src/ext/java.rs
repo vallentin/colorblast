@@ -526,7 +526,7 @@ mod tests {
         for &expected in JAVA_OPERATORS {
             let mut scanner = Scanner::new(expected);
 
-            let actual = scanner.scan_java_operator().map(|(_r, kw)| kw);
+            let actual = scanner.scan_java_operator().map(|(_r, punct)| punct);
             assert_eq!(actual, Ok(expected));
 
             let actual = actual.unwrap();
@@ -540,7 +540,7 @@ mod tests {
         for &expected in JAVA_SEPARATORS {
             let mut scanner = Scanner::new(expected);
 
-            let actual = scanner.scan_java_separator().map(|(_r, kw)| kw);
+            let actual = scanner.scan_java_separator().map(|(_r, punct)| punct);
             assert_eq!(actual, Ok(expected));
 
             let actual = actual.unwrap();
@@ -554,6 +554,14 @@ mod tests {
         assert_eq!("null".is_java_null_literal(), true);
         assert_eq!("null".is_java_boolean_literal(), false);
         assert_eq!("null".is_java_keyword(), false);
+
+        assert_eq!("NULL".is_java_null_literal(), false);
+        assert_eq!("NULL".is_java_boolean_literal(), false);
+        assert_eq!("NULL".is_java_keyword(), false);
+
+        assert_eq!("Null".is_java_null_literal(), false);
+        assert_eq!("Null".is_java_boolean_literal(), false);
+        assert_eq!("Null".is_java_keyword(), false);
     }
 
     #[test]
