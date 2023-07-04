@@ -49,6 +49,8 @@ pub const SWIFT_OPERATORS: &[&str] = &[
     ".",
     ".&", ".|", ".^",
     ".&=", ".|=", ".^=",
+    ",", ";",
+    "#", "\\",
     // "is", "as", "as?", "as!",
 ];
 
@@ -243,8 +245,8 @@ impl<'text> SwiftScannerExt<'text> for Scanner<'text> {
                 '?' => {
                     _ = scanner.accept_char('?');
                 }
-                // :
-                ':' => {}
+                // : ; ,
+                ':' | ';' | ',' | '#' | '\\' => {}
                 _ => return Err(scanner.ranged_text(first)),
             }
             Ok(())
@@ -292,6 +294,7 @@ impl<'text> SwiftScannerExt<'text> for Scanner<'text> {
     #[inline]
     fn scan_swift_int_dec_literal(&mut self) -> ScannerResult<'text, &'text str> {
         self.scan_with(|scanner| {
+            _ = scanner.accept_char('-');
             scanner.accept_if_ext(char::is_ascii_digit)?;
             scanner.skip_while(|c| c.is_ascii_digit() || (c == '_'));
             Ok(())
@@ -304,6 +307,7 @@ impl<'text> SwiftScannerExt<'text> for Scanner<'text> {
     #[inline]
     fn scan_swift_int_hex_literal(&mut self) -> ScannerResult<'text, &'text str> {
         self.scan_with(|scanner| {
+            _ = scanner.accept_char('-');
             scanner.accept_char('0')?;
             scanner.accept_char('x')?;
 
@@ -322,6 +326,7 @@ impl<'text> SwiftScannerExt<'text> for Scanner<'text> {
     #[inline]
     fn scan_swift_int_oct_literal(&mut self) -> ScannerResult<'text, &'text str> {
         self.scan_with(|scanner| {
+            _ = scanner.accept_char('-');
             scanner.accept_char('0')?;
             scanner.accept_char('o')?;
 
@@ -340,6 +345,7 @@ impl<'text> SwiftScannerExt<'text> for Scanner<'text> {
     #[inline]
     fn scan_swift_int_bin_literal(&mut self) -> ScannerResult<'text, &'text str> {
         self.scan_with(|scanner| {
+            _ = scanner.accept_char('-');
             scanner.accept_char('0')?;
             scanner.accept_char('b')?;
 
@@ -368,7 +374,8 @@ impl<'text> SwiftScannerExt<'text> for Scanner<'text> {
             scanner.scan_swift_int_dec_literal()?;
 
             if scanner.accept_char('.').is_ok() {
-                scanner.scan_swift_int_dec_literal()?;
+                scanner.accept_if_ext(char::is_ascii_digit)?;
+                scanner.skip_while(|c| c.is_ascii_digit() || (c == '_'));
             }
 
             if scanner.accept_char_any(&['e', 'E']).is_ok() {
@@ -387,6 +394,7 @@ impl<'text> SwiftScannerExt<'text> for Scanner<'text> {
     // - https://docs.swift.org/swift-book/documentation/the-swift-programming-language/thebasics#Floating-Point-Numbers
     fn scan_swift_float_hex_literal(&mut self) -> ScannerResult<'text, &'text str> {
         self.scan_with(|scanner| {
+            _ = scanner.accept_char('-');
             scanner.scan_swift_int_hex_literal()?;
 
             if scanner.accept_char('.').is_ok() {
@@ -397,7 +405,8 @@ impl<'text> SwiftScannerExt<'text> for Scanner<'text> {
             scanner.accept_char_any(&['p', 'P'])?;
 
             _ = scanner.accept_char_any(&['+', '-']);
-            scanner.scan_swift_int_dec_literal()?;
+            scanner.accept_if_ext(char::is_ascii_digit)?;
+            scanner.skip_while(|c| c.is_ascii_digit() || (c == '_'));
 
             Ok(())
         })
@@ -431,38 +440,44 @@ impl<'text> SwiftScannerExt<'text> for Scanner<'text> {
 
                         break;
                     }
-                    Ok((_r, '\\')) => {
-                        if let Ok((_, '(')) = scanner.next() {
-                            let mut nested = 0;
-                            loop {
-                                scanner.skip_until_char_any(&['(', ')', '"', '\\']);
-                                match scanner.next() {
-                                    Ok((_r, '(')) => {
-                                        nested += 1;
-                                    }
-                                    Ok((_r, ')')) => {
-                                        if nested == 0 {
-                                            continue 'scan;
+                    Ok((r, '\\')) => {
+                        let inner_hashes = scanner.skip_while_char('#').0.len();
+                        if hashes == inner_hashes {
+                            if let Ok((_, '(')) = scanner.next() {
+                                let mut nested = 0;
+                                loop {
+                                    scanner.skip_until_char_any(&['(', ')', '"', '\\']);
+                                    match scanner.next() {
+                                        Ok((_r, '(')) => {
+                                            nested += 1;
                                         }
-                                        nested -= 1;
+                                        Ok((_r, ')')) => {
+                                            if nested == 0 {
+                                                continue 'scan;
+                                            }
+                                            nested -= 1;
+                                        }
+                                        Ok((r, '"')) => {
+                                            scanner.cursor = r.start;
+                                            scanner.scan_swift_string_literal()?;
+                                        }
+                                        Ok((_r, '\\')) => {
+                                            // Skip the next character as it is escaped
+                                            // Note: Technically any character is not valid
+                                            _ = scanner.next();
+                                        }
+                                        Ok(_) => unreachable!(),
+                                        Err(_) => break,
                                     }
-                                    Ok((r, '"')) => {
-                                        scanner.cursor = r.start;
-                                        scanner.scan_swift_string_literal()?;
-                                    }
-                                    Ok((_r, '\\')) => {
-                                        // Skip the next character as it is escaped
-                                        // Note: Technically any character is not valid
-                                        _ = scanner.next();
-                                    }
-                                    Ok(_) => unreachable!(),
-                                    Err(_) => break,
                                 }
+                            } else {
+                                scanner.cursor = r.end;
+
+                                // Skip the next character as it is escaped
+                                // Note: Technically any character is not valid
+                                _ = scanner.next();
                             }
                         }
-                        // else
-                        // Skip the next character as it is escaped
-                        // Note: Technically any character is not valid
                     }
                     Ok(_) => unreachable!(),
                     Err(_) => break,
@@ -657,13 +672,17 @@ mod tests {
     fn test_swift_int_dec_literals() {
         let cases = [
             "0",
+            "-0",
             "2",
             "00",
             "0000",
+            "-0000",
             "0_00_0",
             "0_00_0__",
+            "-0_00_0__",
             "2147_483_648",
             "2147483648",
+            "-2147483648",
         ];
 
         assert_valid_cases!(scan_swift_int_dec_literal, cases);
@@ -675,7 +694,7 @@ mod tests {
 
     #[test]
     fn test_swift_int_dec_literals_invalid() {
-        let cases = ["_0", "_10", "+1", "-123"];
+        let cases = ["_0", "_10"];
 
         assert_invalid_cases!(scan_swift_int_dec_literal, cases);
         assert_invalid_cases!(scan_swift_int_literal, cases);
@@ -684,6 +703,11 @@ mod tests {
     #[test]
     fn test_swift_int_hex_literals() {
         let cases = [
+            "0x0",
+            "-0x0",
+            "0xf",
+            "0xF",
+            "-0xF",
             "0xDada_Cafe",
             "0x00_FF__00_FF",
             "0x100000000",
@@ -706,9 +730,12 @@ mod tests {
     #[test]
     fn test_swift_int_oct_literals() {
         let cases = [
+            "0o0",
+            "-0o0",
             "0o372",
             "0o777",
             "0o177_7777_7777",
+            "-0o177_7777_7777",
             "0o200_0000_0000",
             "0o377_7777_7777",
             "0o7_7777_7777_7777_7777_7777",
@@ -728,8 +755,10 @@ mod tests {
         let cases = [
             "0b0",
             "0b1",
+            "-0b1",
             //
             "0b0111_1111_1111_1111_1111_1111_1111_1111",
+            "-0b0111_1111_1111_1111_1111_1111_1111_1111",
             "0b1000_0000_0000_0000_0000_0000_0000_0000",
             "0b1111_1111_1111_1111_1111_1111_1111_1111",
             "0b0111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111",
@@ -749,10 +778,12 @@ mod tests {
         let cases = [
             "0",
             "1",
+            "-1",
             "123",
             "1.5",
             "2.0",
             "3.14",
+            "-3.14",
             "1e1",
             "1e137",
             "1e+15",
@@ -761,6 +792,7 @@ mod tests {
             //
             "000123.456",
             "1_000_000",
+            "-1_000_000",
             "1_000_000.000_000_1",
         ];
 
@@ -776,6 +808,7 @@ mod tests {
         let cases = [
             "0x0.0p0",
             "0xC.3p0",
+            "-0xC.3p0",
             "0xF.Fp9",
             "0xFFFF.FFFFp9999",
             "0xFFFF.FFFFp+9999",
@@ -817,6 +850,10 @@ mod tests {
             r#""1 2 \((""))""#,
             r#""1 2 \(("\""))""#,
             r#""1 2 \(("\("3\"4")"))""#,
+            //
+            r#""\(multiplier) times 2.5 is \(Double(multiplier) * 2.5)""#,
+            r###"#"Write an interpolated string in Swift using \(multiplier."#"###,
+            r###"#"6 times 7 is \#(6 * 7)."#"###,
         ];
 
         assert_valid_cases!(scan_swift_string_literal, cases);

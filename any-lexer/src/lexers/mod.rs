@@ -6,6 +6,7 @@ mod jsonc;
 mod python;
 mod rust;
 mod scss;
+mod swift;
 
 pub use self::c::*;
 pub use self::cpp::*;
@@ -15,3 +16,4 @@ pub use self::jsonc::*;
 pub use self::python::*;
 pub use self::rust::*;
 pub use self::scss::*;
+pub use self::swift::*;
