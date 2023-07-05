@@ -6,8 +6,8 @@ const KEYWORDS_CONTROL_FLOW: &[&str] = &[
 ];
 
 const PRIMITIVE_TYPES: &[&str] = &[
-    "bool", "char", "f32", "f64", "fn", "i8", "i16", "i32", "i64", "i128", "isize", "u8", "u16",
-    "u32", "u64", "u128", "unit", "usize",
+    "bool", "char", "f32", "f64", "fn", "i8", "i16", "i32", "i64", "i128", "isize", "str", "u8",
+    "u16", "u32", "u64", "u128", "unit", "usize",
 ];
 
 impl IntoSimpleToken for any_lexer::RustToken {
@@ -60,6 +60,11 @@ impl<'code> RustLexer<'code> {
     fn next_token(&mut self) -> Option<(Token, TokenSpan<'code>)> {
         let (mut tok, mut span) = self.tokens.next()?;
 
+        match tok {
+            Token::Space | Token::Comment => return Some((tok, span)),
+            _ => {}
+        }
+
         match &mut self.state {
             RustLexerState::None => {}
             RustLexerState::InAttr(brackets) => match tok {
@@ -77,6 +82,22 @@ impl<'code> RustLexer<'code> {
                 _ => {}
             },
             RustLexerState::InUse => {}
+            RustLexerState::NextIsFnName => {
+                self.state = RustLexerState::None;
+
+                if tok == Token::Var {
+                    tok = Token::Var2;
+                    return Some((tok, span));
+                }
+            }
+            RustLexerState::NextIsMacroName => {
+                self.state = RustLexerState::None;
+
+                if tok == Token::Var {
+                    tok = Token::Var4;
+                    return Some((tok, span));
+                }
+            }
         }
 
         match tok {
@@ -86,7 +107,18 @@ impl<'code> RustLexer<'code> {
                 tok = Token::Meta;
             }
             Token::Var if matches!(self.state, RustLexerState::InUse) => {
-                tok = Token::Var3;
+                if span.as_str().contains(char::is_uppercase)
+                    || self
+                        .tokens
+                        .peek_non_space_simple_token_if(
+                            |(tok, span)| matches!(tok, Token::Operator if span.as_str() == "::"),
+                        )
+                        .is_some()
+                {
+                    tok = Token::Var3;
+                } else {
+                    tok = Token::Var2;
+                }
             }
             Token::Keyword if span.as_str() == "use" => {
                 self.state = RustLexerState::InUse;
@@ -98,6 +130,10 @@ impl<'code> RustLexer<'code> {
                 tok = Token::Var3;
             }
             Token::Var | Token::Keyword => {
+                if (tok == Token::Keyword) && (span.as_str() == "fn") {
+                    self.state = RustLexerState::NextIsFnName;
+                }
+
                 if (tok == Token::Var)
                     && span
                         .as_str()
@@ -111,14 +147,23 @@ impl<'code> RustLexer<'code> {
                 ) {
                     tok = Token::Var4;
                     span = span.join_unchecked(&next_span);
-                } else if self
-                    .tokens
-                    .peek_non_space_simple_token_if(
-                        |(tok, span)| matches!(tok, Token::Delimiter if span.as_str() == "("),
-                    )
-                    .is_some()
-                {
-                    tok = Token::Var2;
+
+                    self.state = RustLexerState::NextIsMacroName;
+                } else if tok == Token::Var {
+                    let next_token =
+                        self.tokens
+                            .peek_non_space_simple_token_if(|(tok, span)| match tok {
+                                Token::Operator if span.as_str() == "::" => true,
+                                Token::Delimiter if span.as_str() == "(" => true,
+                                _ => false,
+                            });
+                    if let Some((next_tok, _next_span)) = next_token {
+                        match next_tok {
+                            Token::Operator => tok = Token::Var3,
+                            Token::Delimiter => tok = Token::Var2,
+                            _ => unreachable!(),
+                        }
+                    }
                 }
             }
             Token::Operator if span.as_str() == "#" => {
@@ -142,4 +187,6 @@ enum RustLexerState {
     None,
     InAttr(usize),
     InUse,
+    NextIsFnName,
+    NextIsMacroName,
 }
