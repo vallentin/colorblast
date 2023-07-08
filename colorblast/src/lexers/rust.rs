@@ -1,3 +1,5 @@
+use std::mem;
+
 use super::{impl_iter, IntoSimpleToken, SimpleTokenIter, Token, TokenSpan};
 
 const KEYWORDS_CONTROL_FLOW: &[&str] = &[
@@ -9,6 +11,8 @@ const PRIMITIVE_TYPES: &[&str] = &[
     "bool", "char", "f32", "f64", "fn", "i8", "i16", "i32", "i64", "i128", "isize", "str", "u8",
     "u16", "u32", "u64", "u128", "unit", "usize",
 ];
+
+const VARIANTS: &[&str] = &["Some", "None", "Ok", "Err"];
 
 impl IntoSimpleToken for any_lexer::RustToken {
     #[inline]
@@ -82,19 +86,17 @@ impl<'code> RustLexer<'code> {
                 _ => {}
             },
             RustLexerState::InUse => {}
-            RustLexerState::NextIsFnName => {
-                self.state = RustLexerState::None;
-
+            RustLexerState::NextIsFnName
+            | RustLexerState::NextIsMacroName
+            | RustLexerState::NextIsModName => {
+                let state = mem::replace(&mut self.state, RustLexerState::None);
                 if tok == Token::Var {
-                    tok = Token::Var2;
-                    return Some((tok, span));
-                }
-            }
-            RustLexerState::NextIsMacroName => {
-                self.state = RustLexerState::None;
-
-                if tok == Token::Var {
-                    tok = Token::Var4;
+                    let tok = match state {
+                        RustLexerState::NextIsFnName => Token::Var2,
+                        RustLexerState::NextIsMacroName => Token::Var4,
+                        RustLexerState::NextIsModName => Token::Var3,
+                        _ => unreachable!(),
+                    };
                     return Some((tok, span));
                 }
             }
@@ -123,18 +125,26 @@ impl<'code> RustLexer<'code> {
             Token::Keyword if span.as_str() == "use" => {
                 self.state = RustLexerState::InUse;
             }
+            Token::Keyword if span.as_str() == "mod" => {
+                self.state = RustLexerState::NextIsModName;
+            }
             Token::Keyword if KEYWORDS_CONTROL_FLOW.contains(&span.as_str()) => {
                 tok = Token::Keyword2;
             }
             Token::Var if PRIMITIVE_TYPES.contains(&span.as_str()) => {
                 tok = Token::Var3;
             }
+            Token::Var if VARIANTS.contains(&span.as_str()) => {
+                tok = Token::Var5;
+            }
             Token::Var | Token::Keyword => {
                 if (tok == Token::Keyword) && (span.as_str() == "fn") {
                     self.state = RustLexerState::NextIsFnName;
                 }
 
-                if (tok == Token::Var)
+                if (tok == Token::Var) && !span.as_str().contains(char::is_lowercase) {
+                    tok = Token::Var5;
+                } else if (tok == Token::Var)
                     && span
                         .as_str()
                         .chars()
@@ -189,4 +199,5 @@ enum RustLexerState {
     InUse,
     NextIsFnName,
     NextIsMacroName,
+    NextIsModName,
 }
