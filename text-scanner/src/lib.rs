@@ -992,7 +992,7 @@ impl<'text> Scanner<'text> {
     }
 
     /// Skips zero-to-many characters, until the next character
-    /// matches `expected`, same as:
+    /// matches `expected`, essentially the same as:
     ///
     /// ```rust
     /// # use text_scanner::Scanner;
@@ -1003,11 +1003,24 @@ impl<'text> Scanner<'text> {
     /// ```
     #[inline]
     pub fn skip_until_char(&mut self, expected: char) -> ScannerItem<&'text str> {
-        self.skip_until(|c| c == expected)
+        // TODO: Bench
+        // self.skip_until(|c| c == expected)
+
+        let remaining_text = self.remaining_text();
+        let end = remaining_text
+            .find(expected)
+            .unwrap_or(remaining_text.len());
+
+        let start = self.cursor;
+        let end = start + end;
+
+        self.cursor = end;
+
+        self.ranged_text(start..end)
     }
 
     /// Skips zero-to-many characters, until the next character
-    /// match any in `expected`, same as:
+    /// match any in `expected`, essentially the same as:
     ///
     /// ```rust
     /// # use text_scanner::Scanner;
@@ -1016,9 +1029,28 @@ impl<'text> Scanner<'text> {
     /// scanner.skip_until(|c| expected.contains(&c));
     /// # assert_eq!(scanner.remaining_text(), "o World");
     /// ```
+    ///
+    /// If `expected` is [empty], then this method consumes
+    /// all [remaining characters].
+    ///
+    /// [empty]: https://doc.rust-lang.org/std/primitive.slice.html#method.is_empty
+    /// [remaining characters]: Self::remaining_text
     #[inline]
     pub fn skip_until_char_any(&mut self, expected: &[char]) -> ScannerItem<&'text str> {
-        self.skip_until(|c| expected.contains(&c))
+        // TODO: Bench
+        // self.skip_until(|c| expected.contains(&c))
+
+        let remaining_text = self.remaining_text();
+        let end = remaining_text
+            .find(expected)
+            .unwrap_or(remaining_text.len());
+
+        let start = self.cursor;
+        let end = start + end;
+
+        self.cursor = end;
+
+        self.ranged_text(start..end)
     }
 
     /// Skips zero-to-many characters, until the next characters
@@ -1045,9 +1077,19 @@ impl<'text> Scanner<'text> {
     ///
     /// ```rust
     /// # use text_scanner::Scanner;
-    /// let mut scanner = Scanner::new("FooFooFooBarBaz");
+    /// let mut scanner = Scanner::new("FooFooFooBarBazFooBar");
+    /// //                                       ^^^      ^^^
+    ///
     /// assert_eq!(scanner.skip_until_str("Bar"), (0..9, "FooFooFoo"));
-    /// assert_eq!(scanner.remaining_text(), "BarBaz");
+    /// # assert_eq!(scanner.remaining_text(), "BarBazFooBar");
+    /// assert_eq!(scanner.accept_str("Bar"), Ok((9..12, "Bar")));
+    ///
+    /// assert_eq!(scanner.remaining_text(), "BazFooBar");
+    ///
+    /// assert_eq!(scanner.skip_until_str("Bar"), (12..18, "BazFoo"));
+    /// # assert_eq!(scanner.remaining_text(), "Bar");
+    /// assert_eq!(scanner.accept_str("Bar"), Ok((18..21, "Bar")));
+    /// # assert_eq!(scanner.remaining_text(), "");
     /// ```
     ///
     /// [`skip_until_char()`]: Self::skip_until_char
@@ -1060,6 +1102,8 @@ impl<'text> Scanner<'text> {
             .unwrap_or(remaining_text.len());
 
         let start = self.cursor;
+        let end = start + end;
+
         self.cursor = end;
 
         self.ranged_text(start..end)
