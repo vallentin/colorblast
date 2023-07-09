@@ -10,7 +10,7 @@
 pub mod ext;
 
 pub mod prelude {
-    pub use super::{ScanResult, Scanner, ScannerItem, ScannerResult};
+    pub use super::{IntoScanner, ScanResult, Scanner, ScannerItem, ScannerResult};
 }
 
 mod private {
@@ -257,6 +257,8 @@ impl<'text> Scanner<'text> {
     /// Advances the scanner cursor and returns the next
     /// [`char`] and its [`Range`], if any.
     ///
+    /// See also [`next_str()`] and [`next_line()`].
+    ///
     /// # Example
     ///
     /// ```rust
@@ -275,6 +277,9 @@ impl<'text> Scanner<'text> {
     ///
     /// assert_eq!(scanner.remaining_text(), "");
     /// ```
+    ///
+    /// [`next_str()`]: Self::next_str
+    /// [`next_line()`]: Self::next_line
     #[inline]
     #[allow(clippy::should_implement_trait)]
     pub fn next(&mut self) -> ScannerResult<'text, char> {
@@ -286,7 +291,8 @@ impl<'text> Scanner<'text> {
     /// Returns the next [`char`] and its [`Range`], if any,
     /// without advancing the cursor position.
     ///
-    /// See also [`peek_str()`], [`peek_nth()`], and [`peek_iter()`].
+    /// See also [`peek_str()`], [`peek_line()`], [`peek_nth()`],
+    /// and [`peek_iter()`].
     ///
     /// # Example
     ///
@@ -306,6 +312,7 @@ impl<'text> Scanner<'text> {
     /// ```
     ///
     /// [`peek_str()`]: Self::peek_str
+    /// [`peek_line()`]: Self::peek_line
     /// [`peek_nth()`]: Self::peek_nth
     /// [`peek_iter()`]: Self::peek_iter
     #[inline]
@@ -320,7 +327,7 @@ impl<'text> Scanner<'text> {
     /// Returns the `n`th [`char`] and its [`Range`], if any,
     /// without advancing the cursor position.
     ///
-    /// See also [`peek_str()`] and [`peek_iter()`].
+    /// See also [`peek_str()`], [`peek_line()`] and, [`peek_iter()`].
     ///
     /// # Example
     ///
@@ -340,6 +347,7 @@ impl<'text> Scanner<'text> {
     /// ```
     ///
     /// [`peek_str()`]: Self::peek_str
+    /// [`peek_line()`]: Self::peek_line
     /// [`peek_iter()`]: Self::peek_iter
     #[inline]
     pub fn peek_nth(&self, n: usize) -> ScannerResult<'text, char> {
@@ -355,7 +363,7 @@ impl<'text> Scanner<'text> {
     /// **Note:** This has the same lifetime as the original `text`,
     /// so the scanner can continue to be used while this exists.
     ///
-    /// See also [`peek_str()`].
+    /// See also [`peek_str()`] and [`peek_line()`].
     ///
     /// # Example
     ///
@@ -378,6 +386,7 @@ impl<'text> Scanner<'text> {
     /// ```
     ///
     /// [`peek_str()`]: Self::peek_str
+    /// [`peek_line()`]: Self::peek_line
     #[inline]
     pub fn peek_iter(&self) -> CharRangesOffset<'text> {
         self.remaining_text().char_ranges().offset(self.cursor)
@@ -387,6 +396,8 @@ impl<'text> Scanner<'text> {
     /// slice of the following `n` characters. If less than `n` are
     /// remaining, then [`Err`] is returned, with the [remaining text],
     /// if any, without advancing the cursor.
+    ///
+    /// See also [`next_line()`].
     ///
     /// **Note:** The returned string slice has the same lifetime as
     /// the original `text`, so the scanner can continue to be used
@@ -431,6 +442,7 @@ impl<'text> Scanner<'text> {
     /// ```
     ///
     /// [remaining text]: Self::remaining_text
+    /// [`next_line()`]: Self::next_line
     /// [chars()]: str::chars
     /// [count()]: Iterator::count()
     /// [`len()`]: str::len
@@ -504,6 +516,139 @@ impl<'text> Scanner<'text> {
         let (last, _) = self.peek_nth(n - 1)?;
         let r = self.cursor..last.end;
         Ok(self.ranged_text(r))
+    }
+
+    /// Advances the scanner cursor and returns `Ok` with the `&'text str`
+    /// and its [`Range`], of the next line, i.e. all the following characters
+    /// until the next line terminator.
+    /// If there are no more [remaining characters], then `Err` is returned.
+    ///
+    /// Line terminators are excluded from the returned line.
+    ///
+    /// See [`next_line_terminator()`] for information about line terminators.
+    ///
+    /// **Note:** The returned string slice has the same lifetime as
+    /// the original `text`, so the scanner can continue to be used
+    /// while this exists.
+    ///
+    /// # Example
+    ///
+    /// Calling [`next_line()`] followed by [`next_line_terminator()`] in a loop
+    /// matches the behavior of [`str::lines()`].
+    ///
+    /// ```rust
+    /// # use text_scanner::Scanner;
+    /// let mut scanner = Scanner::new("foo\nbar\r\n\n\nbaz\rqux\r\r\nend");
+    /// //                              ^^^  ^^^        ^^^^^^^^^^    ^^^
+    ///
+    /// assert_eq!(scanner.next_line(), Ok((0..3, "foo")));
+    /// assert_eq!(scanner.next_line_terminator(), Ok((3..4, "\n")) );
+    ///
+    /// assert_eq!(scanner.next_line(), Ok((4..7, "bar")));
+    /// assert_eq!(scanner.next_line_terminator(), Ok((7..9, "\r\n")));
+    ///
+    /// assert_eq!(scanner.next_line(), Ok((9..9, "")));
+    /// assert_eq!(scanner.next_line_terminator(), Ok((9..10, "\n")));
+    ///
+    /// assert_eq!(scanner.next_line(), Ok((10..10, "")));
+    /// assert_eq!(scanner.next_line_terminator(), Ok((10..11, "\n")));
+    ///
+    /// assert_eq!(scanner.next_line(), Ok((11..19, "baz\rqux\r")));
+    /// assert_eq!(scanner.next_line_terminator(), Ok((19..21, "\r\n")));
+    ///
+    /// assert_eq!(scanner.next_line(), Ok((21..24, "end")));
+    /// assert_eq!(scanner.next_line_terminator(), Err((24..24, "")));
+    ///
+    /// assert_eq!(scanner.next_line(), Err((24..24, "")));
+    /// assert_eq!(scanner.next_line_terminator(), Err((24..24, "")));
+    ///
+    /// # assert_eq!(scanner.remaining_text(), "");
+    /// ```
+    ///
+    /// [remaining characters]: Self::remaining_text
+    /// [`next_line()`]: Self::next_line
+    /// [`next_line_terminator()`]: Self::next_line_terminator
+    #[inline]
+    pub fn next_line(&mut self) -> ScannerResult<'text, &'text str> {
+        let start = self.cursor;
+
+        if !self.has_remaining_text() {
+            return Err((start..start, ""));
+        }
+
+        loop {
+            _ = self.skip_until_char_any(&['\n', '\r']);
+            if self.peek_line_terminator().is_ok() || !self.has_remaining_text() {
+                break;
+            } else {
+                _ = self.next();
+            }
+        }
+
+        let r = start..self.cursor;
+        Ok(self.ranged_text(r))
+    }
+
+    /// Returns the next line, if any, without advancing
+    /// the cursor position.
+    ///
+    /// See [`next_line()`] for more information.
+    ///
+    /// [`next_line()`]: Self::next_line
+    #[inline]
+    pub fn peek_line(&self) -> ScannerResult<'text, &'text str> {
+        self.clone().next_line()
+    }
+
+    /// Advances the scanner cursor and returns `Ok` with the `&'text str`
+    /// and its [`Range`], if the following character(s) is a line terminator.
+    ///
+    /// Line Terminators:
+    /// - `\n` (line feed)
+    /// - `\r\n` (carriage return + line feed)
+    ///
+    /// Any carriage return (`\r`) **not** followed by a line feed (`\n`)
+    /// is **not** considered a line terminator.
+    ///
+    /// **Note:** The returned string slice has the same lifetime as
+    /// the original `text`, so the scanner can continue to be used
+    /// while this exists.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use text_scanner::{IntoScanner, Scanner};
+    ///
+    /// assert_eq!("\n".into_scanner().next_line_terminator(), Ok((0..1, "\n")));
+    /// assert_eq!("\r\n".into_scanner().next_line_terminator(), Ok((0..2, "\r\n")));
+    ///
+    /// assert_eq!("\r".into_scanner().next_line_terminator(), Err((0..0, "")));
+    /// assert_eq!("\r\r\n".into_scanner().next_line_terminator(), Err((0..0, "")));
+    /// ```
+    #[inline]
+    pub fn next_line_terminator(&mut self) -> ScannerResult<'text, &'text str> {
+        let (r, s) = self.peek_line_terminator()?;
+        self.cursor = r.end;
+        Ok((r, s))
+    }
+
+    /// Returns the next line terminator, if any, without advancing
+    /// the cursor position.
+    ///
+    /// See [`next_line_terminator()`] for more information.
+    ///
+    /// [`next_line_terminator()`]: Self::next_line_terminator
+    #[inline]
+    pub fn peek_line_terminator(&self) -> ScannerResult<'text, &'text str> {
+        let cursor = self.cursor;
+        let text = self.remaining_text();
+        if text.starts_with('\n') {
+            Ok(self.ranged_text(cursor..(cursor + 1)))
+        } else if text.starts_with("\r\n") {
+            Ok(self.ranged_text(cursor..(cursor + 2)))
+        } else {
+            Err((cursor..cursor, ""))
+        }
     }
 
     /// Advances the scanner cursor and returns the next
@@ -1480,6 +1625,27 @@ impl<'text> Scanner<'text> {
             }
             Ok(())
         })
+    }
+}
+
+pub trait IntoScanner<'text> {
+    fn into_scanner(self) -> Scanner<'text>;
+}
+
+impl<'text> IntoScanner<'text> for &'text str {
+    #[inline]
+    fn into_scanner(self) -> Scanner<'text> {
+        Scanner::new(self)
+    }
+}
+
+impl<'text, T> From<T> for Scanner<'text>
+where
+    T: IntoScanner<'text>,
+{
+    #[inline]
+    fn from(value: T) -> Self {
+        value.into_scanner()
     }
 }
 
