@@ -18,3 +18,10 @@ ext = []
 
 [dependencies]
 char-ranges = "0.1"
+
+[dev-dependencies]
+criterion = "0.5"
+
+[[bench]]
+name = "accept_vs_test"
+harness = false

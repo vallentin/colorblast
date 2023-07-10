@@ -254,6 +254,22 @@ impl<'text> Scanner<'text> {
         self.set_cursor_pos(0)
     }
 
+    /// Calls `f` with a <code>&mut [Scanner]</code> of this
+    /// <code>&[Scanner]</code>, i.e. a [`Scanner`] with the
+    /// same [`text()`], [`remaining_text()`], and [`cursor_pos()`].
+    ///
+    /// [`text()`]: Self::text
+    /// [`remaining_text()`]: Self::remaining_text
+    /// [`cursor_pos()`]: Self::cursor_pos
+    #[inline]
+    pub fn peeking<T, F>(&self, f: F) -> T
+    where
+        F: FnOnce(&mut Self) -> T,
+    {
+        let mut scanner = self.clone();
+        f(&mut scanner)
+    }
+
     /// Advances the scanner cursor and returns the next
     /// [`char`] and its [`Range`], if any.
     ///
@@ -651,6 +667,68 @@ impl<'text> Scanner<'text> {
         }
     }
 
+    #[inline]
+    fn test<T, F>(&mut self, f: F) -> ScannerResult<'text, T>
+    where
+        F: FnOnce(&Self) -> Option<(usize, T)>,
+    {
+        match f(self) {
+            Some((len_utf8, c)) => {
+                let start = self.cursor;
+                self.cursor += len_utf8;
+                Ok((start..self.cursor, c))
+            }
+            None => Err((self.cursor..self.cursor, "")),
+        }
+    }
+
+    /// This method is a more efficient version of [`accept_str()`], with the
+    /// condition that on `Err`, then the error value is always
+    /// <code>Err(([cursor]..[cursor], &quot;&quot;))</code>.
+    ///
+    /// This makes the check more efficient, as this method does not have to
+    /// track the longest matching substring and its [`Range`] for the error value.
+    ///
+    /// [`accept_str()`]: Self::accept_str
+    /// [cursor]: Self::cursor_pos
+    #[inline]
+    pub fn test_str(&mut self, expected: &str) -> ScannerResult<'text, &'text str> {
+        self.test(|scanner| {
+            let text = scanner.remaining_text();
+            if text.starts_with(expected) {
+                let len = expected.len();
+                let expected = &text[..len];
+                Some((len, expected))
+            } else {
+                None
+            }
+        })
+    }
+
+    /// This method is a more efficient version of [`accept_str_any()`], with the
+    /// condition that on `Err`, then the error value is always
+    /// <code>Err(([cursor]..[cursor], &quot;&quot;))</code>.
+    ///
+    /// This makes the check more efficient, as this method does not have to
+    /// track the longest matching substring and its [`Range`] for the error value.
+    ///
+    /// [`accept_str_any()`]: Self::accept_str_any
+    /// [cursor]: Self::cursor_pos
+    #[inline]
+    pub fn test_str_any(&mut self, expected: &[&str]) -> ScannerResult<'text, &'text str> {
+        self.test(|scanner| {
+            let text = scanner.remaining_text();
+            for &expected in expected {
+                if text.starts_with(expected) {
+                    let len = expected.len();
+                    let expected = &text[..len];
+                    return Some((len, expected));
+                }
+            }
+            None
+        })
+    }
+
     /// Advances the scanner cursor and returns the next
     /// [`char`] and its [`Range`], if `f(c)` returns `true`
     /// where `c` is the next character.
@@ -765,12 +843,15 @@ impl<'text> Scanner<'text> {
     /// in `expected`. If not, then an `Err` is returned, with the longest
     /// matching substring and its [`Range`].
     ///
+    /// If `expected` is only 1 character, then use [`accept_char()`]
+    /// instead.
+    ///
+    /// If the `Err` value is not needed, then use [`test_str()`]
+    /// instead for a more efficient test.
+    ///
     /// **Note:** The returned string slice has the same lifetime as
     /// the original `text`, so the scanner can continue to be used
     /// while this exists.
-    ///
-    /// If `expected` is only 1 character, then use [`accept_char()`]
-    /// instead.
     ///
     /// # Panics
     ///
@@ -799,6 +880,7 @@ impl<'text> Scanner<'text> {
     /// ```
     ///
     /// [`accept_char()`]: Self::accept_char
+    /// [`test_str()`]: Self::test_str
     /// [cursor]: Self::cursor_pos
     /// [empty]: https://doc.rust-lang.org/std/primitive.str.html#method.is_empty
     pub fn accept_str(&mut self, expected: &str) -> ScannerResult<'text, &'text str> {
@@ -838,12 +920,15 @@ impl<'text> Scanner<'text> {
     /// order of the strings into longest-to-shortest order,
     /// i.e. `["foo", "foobar"]` into `["foobar", "foo"]`.
     ///
+    /// If `expected` only contains 1 character strings, then use
+    /// [`accept_char_any()`] instead.
+    ///
+    /// If the `Err` value is not needed, then use [`test_str_any()`]
+    /// instead for a more efficient test.
+    ///
     /// **Note:** The returned string slice has the same lifetime as
     /// the original `text`, so the scanner can continue to be used
     /// while this exists.
-    ///
-    /// If `expected` only contains 1 character strings, then use
-    /// [`accept_char_any()`] instead.
     ///
     /// # Panics
     ///
@@ -878,6 +963,7 @@ impl<'text> Scanner<'text> {
     /// ```
     ///
     /// [`accept_char_any()`]: Self::accept_char_any
+    /// [`test_str_any()`]: Self::test_str_any
     /// [cursor]: Self::cursor_pos
     /// [empty]: https://doc.rust-lang.org/std/primitive.slice.html#method.is_empty
     /// [empty2]: https://doc.rust-lang.org/std/primitive.str.html#method.is_empty
@@ -1385,21 +1471,6 @@ impl<'text> Scanner<'text> {
                 Err(self.ranged_text(r))
             }
         }
-    }
-
-    /// Calls `f` with a <code>&mut [Scanner]</code> of this
-    /// <code>&[Scanner]</code>, i.e. a [`Scanner`] with the
-    /// same [`text()`], [`remaining_text()`], and [`cursor_pos()`].
-    ///
-    /// [`text()`]: Self::text
-    /// [`remaining_text()`]: Self::remaining_text
-    /// [`cursor_pos()`]: Self::cursor_pos
-    pub fn peeking<T, F>(&self, f: F) -> T
-    where
-        F: FnOnce(&mut Self) -> T,
-    {
-        let mut scanner = self.clone();
-        f(&mut scanner)
     }
 
     /// This function accepts the following formats:
