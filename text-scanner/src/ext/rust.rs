@@ -535,10 +535,11 @@ pub trait RustScannerExt<'text>: crate::private::Sealed {
 
 impl<'text> RustScannerExt<'text> for Scanner<'text> {
     // Reference: https://doc.rust-lang.org/reference/comments.html
+    #[inline]
     fn scan_rust_line_comment(&mut self) -> ScannerResult<'text, &'text str> {
         self.scan_with(|scanner| {
-            scanner.accept_str("//")?;
-            scanner.skip_until_char_any(&['\n', '\r']);
+            scanner.test_str("//")?;
+            _ = scanner.next_line();
             Ok(())
         })
     }

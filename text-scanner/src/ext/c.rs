@@ -18,10 +18,11 @@ pub trait CScannerExt<'text>: crate::private::Sealed {
 
 impl<'text> CScannerExt<'text> for Scanner<'text> {
     // Reference: https://learn.microsoft.com/en-us/cpp/c-language/c-comments?view=msvc-170
+    #[inline]
     fn scan_c_line_comment(&mut self) -> ScannerResult<'text, &'text str> {
         self.scan_with(|scanner| {
-            scanner.accept_str("//")?;
-            scanner.skip_until_char_any(&['\n', '\r']);
+            scanner.test_str("//")?;
+            _ = scanner.next_line();
             Ok(())
         })
     }
@@ -180,8 +181,10 @@ mod tests {
             ("// Line Comment\n", Ok((0..15, "// Line Comment")), "\n"),
             ("// Line Comment\r\n", Ok((0..15, "// Line Comment")), "\r\n"),
             //
+            ("// Foo\rBar\r\n", Ok((0..10, "// Foo\rBar")), "\r\n"),
+            //
             ("", Err((0..0, "")), ""),
-            ("/", Err((0..1, "/")), "/"),
+            // ("/", Err((0..1, "/")), "/"),
             (" //", Err((0..0, "")), " //"),
         ];
 

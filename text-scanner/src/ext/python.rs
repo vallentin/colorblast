@@ -59,7 +59,7 @@ impl<'text> PythonScannerExt<'text> for Scanner<'text> {
     fn scan_python_line_comment(&mut self) -> ScannerResult<'text, &'text str> {
         self.scan_with(|scanner| {
             scanner.accept_char('#')?;
-            scanner.skip_until_char_any(&['\n', '\r']);
+            _ = scanner.next_line();
             Ok(())
         })
     }

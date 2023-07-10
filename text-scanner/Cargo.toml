@@ -29,3 +29,7 @@ harness = false
 [[bench]]
 name = "accept_vs_test"
 harness = false
+
+[[bench]]
+name = "scan_line_comment"
+harness = false
