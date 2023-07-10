@@ -1,20 +1,22 @@
+use std::hint::black_box;
+
 use criterion::{criterion_group, criterion_main, Criterion};
 use text_scanner::{Scanner, ScannerItem};
 
 fn bench_accept_vs_test(c: &mut Criterion) {
-    let scanner = Scanner::new("// Hello World");
+    let scanner = Scanner::new(black_box("// Hello World"));
 
     let mut group = c.benchmark_group("str");
     group.bench_function("accept_str", |b| {
         b.iter(|| -> ScannerItem<&'_ str> {
             let mut scanner = scanner.clone();
-            scanner.accept_str("//").unwrap()
+            scanner.accept_str(black_box("//")).unwrap()
         });
     });
     group.bench_function("test_str", |b| {
         b.iter(|| -> ScannerItem<&'_ str> {
             let mut scanner = scanner.clone();
-            scanner.test_str("//").unwrap()
+            scanner.test_str(black_box("//")).unwrap()
         });
     });
     group.finish();
@@ -24,7 +26,7 @@ fn bench_accept_vs_test(c: &mut Criterion) {
         b.iter(|| -> ScannerItem<&'_ str> {
             let mut scanner = scanner.clone();
             scanner
-                .accept_str_any(&["// foo", "// bar", "// baz", "//"])
+                .accept_str_any(&black_box(["// foo", "// bar", "// baz", "//"]))
                 .unwrap()
         });
     });
@@ -32,7 +34,7 @@ fn bench_accept_vs_test(c: &mut Criterion) {
         b.iter(|| -> ScannerItem<&'_ str> {
             let mut scanner = scanner.clone();
             scanner
-                .test_str_any(&["// foo", "// bar", "// baz", "//"])
+                .test_str_any(&black_box(["// foo", "// bar", "// baz", "//"]))
                 .unwrap()
         });
     });

@@ -760,6 +760,14 @@ impl<'text> Scanner<'text> {
         } else {
             Err((self.cursor..self.cursor, ""))
         }
+
+        // self.test(|scanner| {
+        //     let c = scanner.remaining_text().chars().next();
+        //     match c {
+        //         Some(c) if f(c) => Some((c.len_utf8(), c)),
+        //         _ => None,
+        //     }
+        // })
     }
 
     #[allow(dead_code)]
@@ -791,6 +799,13 @@ impl<'text> Scanner<'text> {
     #[inline]
     pub fn accept_char(&mut self, expected: char) -> ScannerResult<'text, char> {
         self.accept_if(|c| c == expected)
+
+        // self.test(|scanner| {
+        //     scanner
+        //         .remaining_text()
+        //         .starts_with(expected)
+        //         .then(|| (expected.len_utf8(), expected))
+        // })
     }
 
     /// Advances the scanner cursor and returns the next
@@ -827,15 +842,11 @@ impl<'text> Scanner<'text> {
     ///
     /// [cursor]: Self::cursor_pos
     /// [empty]: https://doc.rust-lang.org/std/primitive.slice.html#method.is_empty
+    #[inline]
     pub fn accept_char_any(&mut self, expected: &[char]) -> ScannerResult<'text, char> {
         debug_assert!(!expected.is_empty(), "`expected` is empty");
-        let (r, c) = self.peek()?;
-        if expected.contains(&c) {
-            self.cursor = r.end;
-            Ok((r, c))
-        } else {
-            Err((self.cursor..self.cursor, ""))
-        }
+
+        self.accept_if(|c| expected.contains(&c))
     }
 
     /// Advances the scanner cursor and returns `Ok` with the `&'text str`

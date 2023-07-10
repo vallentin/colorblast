@@ -23,5 +23,9 @@ char-ranges = "0.1"
 criterion = "0.5"
 
 [[bench]]
+name = "accept_impl"
+harness = false
+
+[[bench]]
 name = "accept_vs_test"
 harness = false
