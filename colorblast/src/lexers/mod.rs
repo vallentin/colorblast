@@ -16,10 +16,12 @@ pub mod prelude {
 mod json;
 mod jsonc;
 mod rust;
+mod text;
 
 pub use self::json::*;
 pub use self::jsonc::*;
 pub use self::rust::*;
+pub use self::text::*;
 
 use crate::{IntoSimpleToken, SimpleTokenIter, Token, TokenSpan};
 
@@ -27,21 +29,21 @@ macro_rules! impl_enum_lexer {
     (
         $(
             $(#[$attr:meta])*
-            $name:ident => $lexer:ident,
-        )+
+            $name:ident => $lexer:ident
+        ),+ $(,)?
     ) => {
         #[derive(PartialEq, Eq, Clone, Copy, Debug)]
         #[non_exhaustive]
         pub enum Lexer {
             $(
                 $(#[$attr])*
-                $name,
-            )+
+                $name
+            ),+
         }
 
         impl Lexer {
             pub const VARIANTS: &[Self] = &[
-                $(Self::$name,)+
+                $(Self::$name),+
             ];
 
             pub fn into_lexer<'text>(
@@ -67,6 +69,7 @@ impl_enum_lexer!(
     /// [JSON with Comments]: https://code.visualstudio.com/docs/languages/json#_json-with-comments
     JsonC => JsonCLexer,
     Rust => RustLexer,
+    PlainText => PlainTextLexer,
 );
 
 macro_rules! impl_iter {

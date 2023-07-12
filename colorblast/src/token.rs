@@ -65,6 +65,7 @@ macro_rules! impl_enum_token {
 impl_enum_token!(
     Space,
     Comment,
+    /// Token representing text, which might contain whitespace.
     Text,
     Var,
     Var2,
