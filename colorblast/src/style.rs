@@ -143,6 +143,8 @@ impl From<[u8; 3]> for Color {
 }
 
 impl From<(u8, u8, u8, u8)> for Color {
+    // Requires Rust 1.71
+    #[allow(unknown_lints, clippy::tuple_array_conversions)]
     #[inline]
     fn from((r, g, b, a): (u8, u8, u8, u8)) -> Self {
         Self([r, g, b, a])
